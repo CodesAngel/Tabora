@@ -118,16 +118,7 @@ Tabora's Manifest V3 package is compatible with Chrome, Microsoft Edge, Brave, O
 
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
-| Next release | 2026-09-15 | Added selective browser-bookmark import with folder-level and individual-link choices, live totals, and an explicit empty initial selection | Draft |
-| Next release | 2026-09-15 | Added 27 original anime-inspired dark and light wallpapers with varied cinematic perspectives, matching interface palettes, and optimized previews | Draft |
-| Next release | 2026-09-15 | Added nine original anime-inspired wallpaper themes with matching interface palettes and optimized previews | Draft |
-| Next release | 2026-09-15 | Added four original dark and light wallpapers with optimized previews and matching interface palettes | Draft |
-| Next release | 2026-08-31 | Added Chromium and Firefox MV3 compatibility plus browser-specific distribution guidance; no new permissions or data transmission | Draft |
-| Next release | 2026-08-31 | Added portable `.tabora` files for exporting and importing individual boards and pages locally | Draft |
-| Next release | 2026-08-31 | Added six premium dark and light wallpaper presets with matching glass UI palettes | Draft |
-| Next release | 2026-08-31 | Added optimized Tabora icon assets for the Chrome toolbar, extension manager, and store listing | Draft |
-| Next release | 2026-08-31 | Added automatic link metadata fetching during dashboard saves and imports with one-time optional site access | Draft |
-| Next release | 2026-08-31 | Added quiet in-layout welcome guidance for creating boards, saving links, and searching the workspace | Draft |
+| 3.1.0 | 2026-09-15 | Added selective bookmark importing, portable page and board sharing, expanded browser compatibility, improved link details and onboarding, and a 60-wallpaper dark/light collection | Draft |
 | 3.0.2 | 2026-08-31 | Removed an unnecessary background permission and hardened service-worker startup across Chromium browsers | Draft |
 | 3.0.1 | 2026-08-31 | MV3 reliability, optional site access, accessibility, consistent local typography, and theme-aware toolbar popup styling | Draft |
 

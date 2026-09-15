@@ -184,12 +184,13 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 ## Changelog
 
-### Version 3.0.2
+### Version 3.1.0
 
 - Current stable release
 - Full Manifest V3 support
-- All core features implemented
-- Multiple themes and wallpapers
+- Selective browser-bookmark import by folder or individual link
+- 60 original dark and light wallpapers with matching interface palettes
+- Export and import support for individual Tabora pages and boards
 - Privacy-focused local storage
 
 ## Roadmap
