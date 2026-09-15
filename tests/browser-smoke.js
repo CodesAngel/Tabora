@@ -180,6 +180,53 @@ async function waitForTargets() {
   assert.equal(sharing.linkResult, "Link copied");
   assert.equal(sharing.shareButton, true);
 
+  const selectiveImport = await client.evaluate(`(() => {
+    prepareImport([
+      { name: "Bookmarks bar", links: [
+        { title: "Alpha", url: "https://selective-import.test/alpha" },
+        { title: "Beta", url: "https://selective-import.test/beta" }
+      ] },
+      { name: "Other bookmarks", links: [
+        { title: "Gamma", url: "https://selective-import.test/gamma" }
+      ] }
+    ], { selectable: true });
+    const commit = document.querySelector("#commitImport");
+    const initial = {
+      groups: document.querySelectorAll("[data-import-group]").length,
+      selected: document.querySelectorAll("[data-import-link]:checked").length,
+      disabled: commit.disabled
+    };
+    document.querySelector('[data-import-expand="0"]').click();
+    const childList = document.querySelector("#import-group-0-links");
+    document.querySelector('[data-import-link-group="0"][data-import-link="0"]').click();
+    document.querySelector('[data-import-group="1"]').click();
+    const firstGroup = document.querySelector('[data-import-group="0"]');
+    const selected = {
+      count: document.querySelectorAll("[data-import-link]:checked").length,
+      disabled: commit.disabled,
+      indeterminate: firstGroup.indeterminate,
+      title: document.querySelector("#importPreviewTitle").textContent,
+      expanded: !childList.hidden
+    };
+    document.querySelector("#selectAllImports").click();
+    const allSelected = document.querySelectorAll("[data-import-link]:checked").length;
+    document.querySelector("#clearImportSelection").click();
+    const cleared = {
+      count: document.querySelectorAll("[data-import-link]:checked").length,
+      disabled: commit.disabled
+    };
+    document.querySelector("#cancelImportPreview").click();
+    return { initial, selected, allSelected, cleared };
+  })()`);
+  assert.deepEqual(selectiveImport.initial, { groups: 2, selected: 0, disabled: true });
+  assert.equal(selectiveImport.selected.count, 2);
+  assert.equal(selectiveImport.selected.disabled, false);
+  assert.equal(selectiveImport.selected.indeterminate, true);
+  assert.match(selectiveImport.selected.title, /2 of 3 links selected in 2 boards/);
+  assert.equal(selectiveImport.selected.expanded, true);
+  assert.equal(selectiveImport.allSelected, 3);
+  assert.deepEqual(selectiveImport.cleared, { count: 0, disabled: true });
+
   const search = await client.evaluate(`(async () => {
     const tool = document.querySelector("#searchTool");
     tool.click();

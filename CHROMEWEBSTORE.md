@@ -16,7 +16,7 @@ Organize browser tabs and bookmarks into visual pages and boards on every new ta
 
 Tabora replaces the new-tab page with a visual workspace for organizing browser tabs and bookmarks.
 
-Create pages for different areas of your life, arrange links into customizable boards, save the current browser window, find duplicate links, restore deleted items, and switch between original light and dark themes.
+Create pages for different areas of your life, arrange links into customizable boards, selectively import complete browser bookmark folders or individual links, save the current browser window, find duplicate links, restore deleted items, and switch between original light and dark themes.
 
 Use the toolbar popup to save the current tab or window. Open a new tab to manage pages, boards, links, wallpapers, recent activity, private local vaults, and workspace tools.
 
@@ -51,6 +51,7 @@ English
 - Show the new-tab dashboard with several populated boards.
 - Show the toolbar popup saving a tab to a board.
 - Show the light theme, wallpaper selector, and workspace tools.
+- Show the browser-bookmark importer with expandable folders and selected-link totals.
 - Refresh theme screenshots to include Nocturne Archive or Lunar Tide in dark mode and Linen Conservatory or Opal Headlands in light mode.
 - Include one screenshot showing the expanded 60-wallpaper collection and its original anime-inspired artwork without third-party titles or logos.
 - Refresh the dashboard screenshot after the in-layout welcome guidance is finalized.
@@ -117,6 +118,7 @@ Tabora's Manifest V3 package is compatible with Chrome, Microsoft Edge, Brave, O
 
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
+| Next release | 2026-09-15 | Added selective browser-bookmark import with folder-level and individual-link choices, live totals, and an explicit empty initial selection | Draft |
 | Next release | 2026-09-15 | Added 27 original anime-inspired dark and light wallpapers with varied cinematic perspectives, matching interface palettes, and optimized previews | Draft |
 | Next release | 2026-09-15 | Added nine original anime-inspired wallpaper themes with matching interface palettes and optimized previews | Draft |
 | Next release | 2026-09-15 | Added four original dark and light wallpapers with optimized previews and matching interface palettes | Draft |

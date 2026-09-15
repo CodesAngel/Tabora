@@ -121,9 +121,13 @@
           <div class="dialog-footer"><button id="confirmTextImport" class="accent-button" type="button">Import links</button></div>
         </div>
         <div id="importPreview" class="import-preview" hidden>
-          <div><span class="eyebrow">Ready to import</span><h3 id="importPreviewTitle"></h3><p id="importPreviewDetails"></p></div>
+          <div><span class="eyebrow">Ready to import</span><h3 id="importPreviewTitle" aria-live="polite"></h3><p id="importPreviewDetails"></p></div>
+          <div id="importSelectionActions" class="import-selection-actions" hidden>
+            <span>Select bookmark boards or expand them to choose individual links.</span>
+            <div><button id="selectAllImports" class="text-button" type="button">Select all</button><button id="clearImportSelection" class="text-button" type="button">Clear</button></div>
+          </div>
           <div id="importPreviewBoards" class="preview-board-list"></div>
-          <div class="dialog-footer"><button id="cancelImportPreview" class="secondary-button" type="button">Back</button><button id="commitImport" class="accent-button" type="button">Import and fetch details</button></div>
+          <div class="dialog-footer"><button id="cancelImportPreview" class="secondary-button" type="button">Back</button><button id="commitImport" class="accent-button" type="button">Import selected and fetch details</button></div>
         </div>
       </form>
     </dialog>

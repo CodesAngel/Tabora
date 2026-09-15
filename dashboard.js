@@ -54,6 +54,10 @@ const wallpaperPreviewUrls = new Map();
 let toastTimer = null;
 let pendingImportGroups = [];
 let pendingTaboraPackage = null;
+let selectiveBookmarkImport = false;
+let pendingImportSkippedCount = 0;
+const selectedImportUrls = new Set();
+const expandedImportGroups = new Set();
 let boardInsertionPlacement = { column: 0, order: 0 };
 let organizeSnapshot = null;
 let organizeDropTarget = null;
@@ -1340,7 +1344,11 @@ document.querySelector("#importTool").addEventListener("click", () => {
   document.querySelector(".import-options").hidden = false;
   pendingImportGroups = [];
   pendingTaboraPackage = null;
+  selectiveBookmarkImport = false;
+  selectedImportUrls.clear();
+  expandedImportGroups.clear();
   document.querySelector("#commitImport").textContent = "Import and fetch details";
+  document.querySelector("#commitImport").disabled = false;
   nodes.importDialog.showModal();
 });
 document.querySelector("#trashTool").addEventListener("click", async () => {
@@ -1545,16 +1553,144 @@ function parseTextLinks(text) {
   }).filter((link) => normalizeUrl(link.url));
 }
 
-function prepareImport(groups) {
+function selectedPendingImportGroups() {
+  if (!selectiveBookmarkImport) return pendingImportGroups;
+  return pendingImportGroups.map((group) => ({
+    ...group,
+    links: group.links.filter((link) => selectedImportUrls.has(link.url))
+  })).filter((group) => group.links.length);
+}
+
+function updateImportSelectionState() {
+  const selectedGroups = selectedPendingImportGroups();
+  const selectedTotal = selectedGroups.reduce((sum, group) => sum + group.links.length, 0);
+  const availableTotal = pendingImportGroups.reduce((sum, group) => sum + group.links.length, 0);
+  const visibleGroups = selectiveBookmarkImport ? selectedGroups.length : pendingImportGroups.length;
+  const title = document.querySelector("#importPreviewTitle");
+  const details = document.querySelector("#importPreviewDetails");
+  const selectionActions = document.querySelector("#importSelectionActions");
+  const commitButton = document.querySelector("#commitImport");
+  title.textContent = selectiveBookmarkImport
+    ? `${selectedTotal} of ${availableTotal} links selected in ${visibleGroups} ${visibleGroups === 1 ? "board" : "boards"}`
+    : `${selectedTotal} links in ${visibleGroups} ${visibleGroups === 1 ? "board" : "boards"}`;
+  details.textContent = pendingImportSkippedCount
+    ? `${pendingImportSkippedCount} duplicate or invalid ${pendingImportSkippedCount === 1 ? "link" : "links"} will be skipped.`
+    : "No duplicates found.";
+  selectionActions.hidden = !selectiveBookmarkImport;
+  commitButton.disabled = selectiveBookmarkImport && selectedTotal === 0;
+  commitButton.textContent = selectiveBookmarkImport ? "Import selected and fetch details" : "Import and fetch details";
+
+  if (!selectiveBookmarkImport) return;
+  for (const [groupIndex, group] of pendingImportGroups.entries()) {
+    const selectedCount = group.links.filter((link) => selectedImportUrls.has(link.url)).length;
+    const groupCheckbox = document.querySelector(`[data-import-group="${groupIndex}"]`);
+    if (groupCheckbox) {
+      groupCheckbox.checked = selectedCount === group.links.length;
+      groupCheckbox.indeterminate = selectedCount > 0 && selectedCount < group.links.length;
+      const count = groupCheckbox.nextElementSibling?.querySelector("span");
+      if (count) count.textContent = selectedCount ? `${selectedCount} of ${group.links.length} selected` : `${group.links.length} links`;
+    }
+    for (const [linkIndex, link] of group.links.entries()) {
+      const checkbox = document.querySelector(`[data-import-link-group="${groupIndex}"][data-import-link="${linkIndex}"]`);
+      if (checkbox) checkbox.checked = selectedImportUrls.has(link.url);
+    }
+  }
+}
+
+function renderImportPreview() {
+  const list = document.querySelector("#importPreviewBoards");
+  list.replaceChildren();
+
+  for (const [groupIndex, group] of pendingImportGroups.entries()) {
+    if (!selectiveBookmarkImport) {
+      const row = document.createElement("div");
+      row.className = "preview-board-row";
+      row.innerHTML = "<strong></strong><span></span>";
+      setText(row, "strong", group.name);
+      setText(row, "span", `${group.links.length} links`);
+      list.append(row);
+      continue;
+    }
+
+    const groupSelectedCount = group.links.filter((link) => selectedImportUrls.has(link.url)).length;
+    const groupId = `import-group-${groupIndex}`;
+    const linkListId = `${groupId}-links`;
+    const expanded = expandedImportGroups.has(groupIndex);
+    const wrapper = document.createElement("section");
+    wrapper.className = "preview-import-group";
+
+    const row = document.createElement("div");
+    row.className = "preview-board-row selectable-preview-row";
+    const toggle = document.createElement("button");
+    toggle.className = "import-group-toggle";
+    toggle.type = "button";
+    toggle.dataset.importExpand = String(groupIndex);
+    toggle.setAttribute("aria-expanded", String(expanded));
+    toggle.setAttribute("aria-controls", linkListId);
+    toggle.setAttribute("aria-label", `${expanded ? "Collapse" : "Expand"} ${group.name}`);
+    toggle.textContent = ">";
+
+    const checkbox = document.createElement("input");
+    checkbox.id = groupId;
+    checkbox.name = "importBoard";
+    checkbox.type = "checkbox";
+    checkbox.dataset.importGroup = String(groupIndex);
+    checkbox.checked = groupSelectedCount === group.links.length;
+    checkbox.indeterminate = groupSelectedCount > 0 && groupSelectedCount < group.links.length;
+
+    const label = document.createElement("label");
+    label.htmlFor = groupId;
+    const name = document.createElement("strong");
+    name.textContent = group.name;
+    const count = document.createElement("span");
+    count.textContent = groupSelectedCount ? `${groupSelectedCount} of ${group.links.length} selected` : `${group.links.length} links`;
+    label.append(name, count);
+    row.append(toggle, checkbox, label);
+
+    const links = document.createElement("div");
+    links.id = linkListId;
+    links.className = "preview-bookmark-list";
+    links.hidden = !expanded;
+    for (const [linkIndex, link] of group.links.entries()) {
+      const linkId = `${groupId}-link-${linkIndex}`;
+      const linkRow = document.createElement("label");
+      linkRow.className = "preview-bookmark-row";
+      linkRow.htmlFor = linkId;
+      const linkCheckbox = document.createElement("input");
+      linkCheckbox.id = linkId;
+      linkCheckbox.name = "importBookmark";
+      linkCheckbox.type = "checkbox";
+      linkCheckbox.dataset.importLinkGroup = String(groupIndex);
+      linkCheckbox.dataset.importLink = String(linkIndex);
+      linkCheckbox.checked = selectedImportUrls.has(link.url);
+      const copy = document.createElement("span");
+      const linkTitle = document.createElement("strong");
+      linkTitle.textContent = link.title || link.url;
+      const linkUrl = document.createElement("small");
+      linkUrl.textContent = link.url;
+      copy.append(linkTitle, linkUrl);
+      linkRow.append(linkCheckbox, copy);
+      links.append(linkRow);
+    }
+    wrapper.append(row, links);
+    list.append(wrapper);
+  }
+  updateImportSelectionState();
+}
+
+function prepareImport(groups, { selectable = false } = {}) {
   pendingTaboraPackage = null;
+  selectiveBookmarkImport = selectable;
+  selectedImportUrls.clear();
+  expandedImportGroups.clear();
   const existingUrls = new Set(appState.boards.filter((board) => board.pageId === activePage().id).flatMap((board) => board.links.map((link) => normalizeUrl(link.url))));
   const seen = new Set(existingUrls);
-  let duplicates = 0;
+  pendingImportSkippedCount = 0;
   pendingImportGroups = groups.map((group) => ({
     name: cleanName(group.name, "Imported Links"),
-    links: group.links.filter((link) => {
+    links: group.links.map((link) => ({ ...link })).filter((link) => {
       const url = normalizeUrl(link.url);
-      if (!url || seen.has(url)) { duplicates += 1; return false; }
+      if (!url || seen.has(url)) { pendingImportSkippedCount += 1; return false; }
       seen.add(url);
       link.url = url;
       return true;
@@ -1563,31 +1699,26 @@ function prepareImport(groups) {
 
   const total = pendingImportGroups.reduce((sum, group) => sum + group.links.length, 0);
   if (!total) { showToast("No new links were found; duplicates were skipped"); return; }
+  if (!selectable) for (const group of pendingImportGroups) for (const link of group.links) selectedImportUrls.add(link.url);
   nodes.textImportPanel.hidden = true;
   document.querySelector(".import-options").hidden = true;
   nodes.importPreview.hidden = false;
-  document.querySelector("#importPreviewTitle").textContent = `${total} links in ${pendingImportGroups.length} ${pendingImportGroups.length === 1 ? "board" : "boards"}`;
-  document.querySelector("#importPreviewDetails").textContent = duplicates ? `${duplicates} duplicate or invalid links will be skipped.` : "No duplicates found.";
-  const list = document.querySelector("#importPreviewBoards");
-  list.innerHTML = "";
-  for (const group of pendingImportGroups) {
-    const row = document.createElement("div");
-    row.className = "preview-board-row";
-    row.innerHTML = "<strong></strong><span></span>";
-    setText(row, "strong", group.name);
-    setText(row, "span", `${group.links.length} links`);
-    list.append(row);
-  }
+  renderImportPreview();
 }
 
 function prepareTaboraPackageImport(taboraPackage) {
   pendingImportGroups = [];
   pendingTaboraPackage = taboraPackage;
+  selectiveBookmarkImport = false;
+  selectedImportUrls.clear();
+  expandedImportGroups.clear();
+  pendingImportSkippedCount = 0;
   const boards = taboraPackage.type === "board" ? [taboraPackage.board] : taboraPackage.boards;
   const total = boards.reduce((count, board) => count + board.links.length, 0);
   nodes.textImportPanel.hidden = true;
   document.querySelector(".import-options").hidden = true;
   nodes.importPreview.hidden = false;
+  document.querySelector("#importSelectionActions").hidden = true;
   document.querySelector("#importPreviewTitle").textContent = `${boards.length} shared ${boards.length === 1 ? "board" : "boards"} with ${total} ${total === 1 ? "link" : "links"}`;
   document.querySelector("#importPreviewDetails").textContent = taboraPackage.type === "page"
     ? `A new page named "${taboraPackage.page.name}" will be added to Tabora.`
@@ -1611,17 +1742,65 @@ async function importBrowserBookmarks() {
   const tree = await extensionApi.bookmarks.getTree();
   const groups = [];
   const loose = [];
-  function walk(node, parentTitle = "") {
+  function walk(node, parentPath = []) {
     const links = (node.children || []).filter((child) => child.url).map((child) => ({ title: child.title, url: child.url }));
-    const title = node.title || parentTitle;
+    const path = node.title ? [...parentPath, node.title] : parentPath;
+    const title = path.join(" / ");
     if (links.length && title) groups.push({ name: title, links });
     else loose.push(...links);
-    for (const child of node.children || []) if (child.children) walk(child, child.title || title);
+    for (const child of node.children || []) if (child.children) walk(child, path);
   }
   walk(tree[0]);
   if (loose.length) groups.push({ name: "Imported Bookmarks", links: loose });
-  prepareImport(groups);
+  prepareImport(groups, { selectable: true });
 }
+
+document.querySelector("#importPreviewBoards").addEventListener("click", (event) => {
+  const toggle = event.target.closest("[data-import-expand]");
+  if (!toggle) return;
+  const groupIndex = Number(toggle.dataset.importExpand);
+  const links = document.querySelector(`#${toggle.getAttribute("aria-controls")}`);
+  const expanded = !expandedImportGroups.has(groupIndex);
+  if (expanded) expandedImportGroups.add(groupIndex);
+  else expandedImportGroups.delete(groupIndex);
+  toggle.setAttribute("aria-expanded", String(expanded));
+  toggle.setAttribute("aria-label", `${expanded ? "Collapse" : "Expand"} ${pendingImportGroups[groupIndex]?.name || "bookmark board"}`);
+  if (links) links.hidden = !expanded;
+});
+
+document.querySelector("#importPreviewBoards").addEventListener("change", (event) => {
+  const groupCheckbox = event.target.closest("[data-import-group]");
+  if (groupCheckbox) {
+    const group = pendingImportGroups[Number(groupCheckbox.dataset.importGroup)];
+    if (!group) return;
+    for (const link of group.links) {
+      if (groupCheckbox.checked) selectedImportUrls.add(link.url);
+      else selectedImportUrls.delete(link.url);
+    }
+    updateImportSelectionState();
+    return;
+  }
+
+  const linkCheckbox = event.target.closest("[data-import-link]");
+  if (!linkCheckbox) return;
+  const group = pendingImportGroups[Number(linkCheckbox.dataset.importLinkGroup)];
+  const link = group?.links[Number(linkCheckbox.dataset.importLink)];
+  if (!link) return;
+  if (linkCheckbox.checked) selectedImportUrls.add(link.url);
+  else selectedImportUrls.delete(link.url);
+  updateImportSelectionState();
+});
+
+document.querySelector("#selectAllImports").addEventListener("click", () => {
+  selectedImportUrls.clear();
+  for (const group of pendingImportGroups) for (const link of group.links) selectedImportUrls.add(link.url);
+  updateImportSelectionState();
+});
+
+document.querySelector("#clearImportSelection").addEventListener("click", () => {
+  selectedImportUrls.clear();
+  updateImportSelectionState();
+});
 
 document.querySelector(".import-options").addEventListener("click", async (event) => {
   const option = event.target.closest("[data-import]");
@@ -1663,9 +1842,13 @@ document.querySelector("#importFile").addEventListener("change", async (event) =
 document.querySelector("#cancelImportPreview").addEventListener("click", () => {
   pendingTaboraPackage = null;
   pendingImportGroups = [];
+  selectiveBookmarkImport = false;
+  selectedImportUrls.clear();
+  expandedImportGroups.clear();
   nodes.importPreview.hidden = true;
   document.querySelector(".import-options").hidden = false;
   document.querySelector("#commitImport").textContent = "Import and fetch details";
+  document.querySelector("#commitImport").disabled = false;
 });
 
 document.querySelector("#commitImport").addEventListener("click", async () => {
@@ -1696,19 +1879,23 @@ document.querySelector("#commitImport").addEventListener("click", async () => {
     button.textContent = "Import and fetch details";
     return;
   }
-  if (!pendingImportGroups.length) return;
-  const total = pendingImportGroups.reduce((sum, group) => sum + group.links.length, 0);
+  const groupsToImport = selectedPendingImportGroups();
+  if (!groupsToImport.length) { showToast("Select at least one bookmark to import", "warning"); return; }
+  const total = groupsToImport.reduce((sum, group) => sum + group.links.length, 0);
   button.disabled = true;
   button.textContent = "Fetching details...";
-  const enriched = await enrichLinksWithMetadata(pendingImportGroups.flatMap((group) => group.links));
+  const enriched = await enrichLinksWithMetadata(groupsToImport.flatMap((group) => group.links));
   const enrichedByUrl = new Map(enriched.links.map((link) => [normalizeUrl(link.url), link]));
-  pendingImportGroups = pendingImportGroups.map((group) => ({
+  const enrichedGroups = groupsToImport.map((group) => ({
     ...group,
     links: group.links.map((link) => enrichedByUrl.get(normalizeUrl(link.url)) || link)
   }));
   await extensionApi.storage.local.set({ taboraLastImportBackup: structuredClone(appState) });
-  for (const group of pendingImportGroups) await addBoard(activePage().id, group.name, group.links);
+  for (const group of enrichedGroups) await addBoard(activePage().id, group.name, group.links);
   pendingImportGroups = [];
+  selectiveBookmarkImport = false;
+  selectedImportUrls.clear();
+  expandedImportGroups.clear();
   nodes.importDialog.close();
   button.disabled = false;
   button.textContent = "Import and fetch details";

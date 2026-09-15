@@ -735,9 +735,30 @@ textarea.dark-input { min-height: 92px; padding-top: 10px; resize: vertical; }
 .import-preview { display: grid; gap: 12px; margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
 .import-preview h3 { margin: 0; font-size: var(--text-lg); }
 .import-preview p { margin: 4px 0 0; color: var(--muted); font-size: var(--text-xs); }
-.preview-board-list { display: grid; gap: 6px; max-height: 180px; overflow: auto; }
+.import-selection-actions { display: flex; min-height: 38px; align-items: center; justify-content: space-between; gap: 14px; color: var(--muted); font-size: var(--text-xs); }
+.import-selection-actions > div { display: flex; flex: 0 0 auto; gap: 5px; }
+.import-selection-actions .text-button { min-height: 36px; padding: 0 9px; border: 0; border-radius: 6px; background: transparent; color: var(--green); font-size: var(--text-xs); font-weight: 700; }
+.import-selection-actions .text-button:hover { background: color-mix(in srgb, var(--green) 10%, transparent); }
+.preview-board-list { display: grid; gap: 6px; max-height: 320px; overflow: auto; scrollbar-color: var(--muted) transparent; }
 .preview-board-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; font-size: var(--text-xs); }
 .preview-board-row span { color: var(--muted); }
+.preview-import-group { display: grid; gap: 5px; }
+.selectable-preview-row { display: grid; grid-template-columns: 28px 20px minmax(0, 1fr); min-height: 48px; padding: 4px 10px 4px 6px; }
+.selectable-preview-row > input, .preview-bookmark-row > input { width: 18px; height: 18px; margin: 0; accent-color: var(--green); cursor: pointer; }
+.selectable-preview-row > label { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+.selectable-preview-row > label strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.selectable-preview-row > label span { flex: 0 0 auto; }
+.import-group-toggle { display: grid; width: 28px; height: 34px; padding: 0; place-items: center; border: 0; border-radius: 5px; background: transparent; color: var(--muted); font-size: 1.45rem; line-height: 1; transform: rotate(0deg); transition: transform 160ms ease, color 160ms ease; }
+.import-group-toggle[aria-expanded="true"] { color: var(--green); transform: rotate(90deg); }
+.import-group-toggle:hover { background: color-mix(in srgb, var(--green) 9%, transparent); color: var(--green); }
+.preview-bookmark-list { display: grid; gap: 3px; margin-left: 34px; padding: 2px 0 5px 16px; border-left: 1px solid var(--line); }
+.preview-bookmark-row { display: grid; grid-template-columns: 20px minmax(0, 1fr); min-height: 48px; padding: 6px 9px; align-items: center; gap: 9px; border-radius: 6px; cursor: pointer; }
+.preview-bookmark-row:hover { background: color-mix(in srgb, var(--green) 7%, transparent); }
+.preview-bookmark-row > span { display: grid; min-width: 0; gap: 2px; }
+.preview-bookmark-row strong, .preview-bookmark-row small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.preview-bookmark-row strong { color: var(--text); font-size: var(--text-xs); }
+.preview-bookmark-row small { color: var(--muted); font-size: 0.68rem; }
+.import-preview .accent-button:disabled { cursor: not-allowed; opacity: 0.48; }
 
 .trash-dialog { width: min(720px, calc(100% - 32px)); min-height: 386px; overflow: hidden; }
 .trash-dialog-content { display: grid; min-height: 384px; padding: 34px; grid-template-rows: auto minmax(150px, 1fr) auto; gap: 28px; }

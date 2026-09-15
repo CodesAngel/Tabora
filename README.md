@@ -21,7 +21,7 @@ Tabora replaces the default new-tab page with an organized dashboard where you c
 - **Private Vaults**: Create private local storage areas for sensitive information
 - **Recent Activity**: Track recently opened links for quick access
 - **Compact Mode**: Toggle between standard and compact board layouts
-- **Bookmark Integration**: Import browser bookmarks with optional permission
+- **Selective Bookmark Import**: Choose entire browser bookmark folders or expand them and import only individual links
 - **Link Health Checker**: Verify that saved links are still accessible
 - **Incognito Mode**: Supports incognito browsing
 - **Privacy Mode**: Hide sensitive boards temporarily
