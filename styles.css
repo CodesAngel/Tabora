@@ -100,6 +100,46 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .dashboard-backdrop.wallpaper-soleil-courtyard { background-image: url("assets/soleil-courtyard.webp"); }
 .dashboard-backdrop.wallpaper-petal-mist { background-image: url("assets/petal-mist.webp"); }
 .dashboard-backdrop.wallpaper-glacier-house { background-image: url("assets/glacier-house.webp"); }
+.dashboard-backdrop.wallpaper-nocturne-archive { background-image: url("assets/nocturne-archive.webp"); }
+.dashboard-backdrop.wallpaper-lunar-tide { background-image: url("assets/lunar-tide.webp"); }
+.dashboard-backdrop.wallpaper-linen-conservatory { background-image: url("assets/linen-conservatory.webp"); }
+.dashboard-backdrop.wallpaper-opal-headlands { background-image: url("assets/opal-headlands.webp"); }
+.dashboard-backdrop.wallpaper-wisteria-moon { background-image: url("assets/wisteria-moon.webp"); }
+.dashboard-backdrop.wallpaper-shadow-ascension { background-image: url("assets/shadow-ascension.webp"); }
+.dashboard-backdrop.wallpaper-grail-mirage { background-image: url("assets/grail-mirage.webp"); }
+.dashboard-backdrop.wallpaper-crimson-ghoul { background-image: url("assets/crimson-ghoul.webp"); }
+.dashboard-backdrop.wallpaper-soul-divide { background-image: url("assets/soul-divide.webp"); }
+.dashboard-backdrop.wallpaper-meteor-hero { background-image: url("assets/meteor-hero.webp"); }
+.dashboard-backdrop.wallpaper-hero-academy { background-image: url("assets/hero-academy.webp"); }
+.dashboard-backdrop.wallpaper-neon-revival { background-image: url("assets/neon-revival.webp"); }
+.dashboard-backdrop.wallpaper-grand-voyage { background-image: url("assets/grand-voyage.webp"); }
+.dashboard-backdrop.wallpaper-titan-last-wall { background-image: url("assets/titan-last-wall.webp"); }
+.dashboard-backdrop.wallpaper-ballroom-radiance { background-image: url("assets/ballroom-radiance.webp"); }
+.dashboard-backdrop.wallpaper-frontier-odyssey { background-image: url("assets/frontier-odyssey.webp"); }
+.dashboard-backdrop.wallpaper-virtual-skyline { background-image: url("assets/virtual-skyline.webp"); }
+.dashboard-backdrop.wallpaper-bizarre-stardust { background-image: url("assets/bizarre-stardust.webp"); }
+.dashboard-backdrop.wallpaper-clover-grimoire { background-image: url("assets/clover-grimoire.webp"); }
+.dashboard-backdrop.wallpaper-wandspire-legacy { background-image: url("assets/wandspire-legacy.webp"); }
+.dashboard-backdrop.wallpaper-shieldbound-horizon { background-image: url("assets/shieldbound-horizon.webp"); }
+.dashboard-backdrop.wallpaper-breaker-dawn { background-image: url("assets/breaker-dawn.webp"); }
+.dashboard-backdrop.wallpaper-striker-blue { background-image: url("assets/striker-blue.webp"); }
+.dashboard-backdrop.wallpaper-emerald-vanguard { background-image: url("assets/emerald-vanguard.webp"); }
+.dashboard-backdrop.wallpaper-reader-apocalypse { background-image: url("assets/reader-apocalypse.webp"); }
+.dashboard-backdrop.wallpaper-midnight-verdict { background-image: url("assets/midnight-verdict.webp"); }
+.dashboard-backdrop.wallpaper-hidden-leaf-dawn { background-image: url("assets/hidden-leaf-dawn.webp"); }
+.dashboard-backdrop.wallpaper-cursed-meridian { background-image: url("assets/cursed-meridian.webp"); }
+.dashboard-backdrop.wallpaper-celestial-surge { background-image: url("assets/celestial-surge.webp"); }
+.dashboard-backdrop.wallpaper-hollow-paradise { background-image: url("assets/hollow-paradise.webp"); }
+.dashboard-backdrop.wallpaper-infernal-brigade { background-image: url("assets/infernal-brigade.webp"); }
+.dashboard-backdrop.wallpaper-ashen-eclipse { background-image: url("assets/ashen-eclipse.webp"); }
+.dashboard-backdrop.wallpaper-chrome-afterglow { background-image: url("assets/chrome-afterglow.webp"); }
+.dashboard-backdrop.wallpaper-psychic-bloom { background-image: url("assets/psychic-bloom.webp"); }
+.dashboard-backdrop.wallpaper-engine-dusk { background-image: url("assets/engine-dusk.webp"); }
+.dashboard-backdrop.wallpaper-unknown-continent { background-image: url("assets/unknown-continent.webp"); }
+.dashboard-backdrop.wallpaper-sunbreak-archipelago { background-image: url("assets/sunbreak-archipelago.webp"); }
+.dashboard-backdrop.wallpaper-jazz-orbit { background-image: url("assets/jazz-orbit.webp"); }
+.dashboard-backdrop.wallpaper-northern-oath { background-image: url("assets/northern-oath.webp"); }
+.dashboard-backdrop.wallpaper-alchemist-equation { background-image: url("assets/alchemist-equation.webp"); }
 
 .dashboard-backdrop.wallpaper-none {
   background-image: none;
@@ -996,6 +1036,125 @@ body[data-palette="verdant"] {
   --backdrop-overlay: rgba(0, 8, 4, 0.25);
 }
 
+body[data-palette="nocturne"] {
+  --page-bg: #070914;
+  --surface: rgba(16, 18, 35, 0.9);
+  --surface-solid: #13172b;
+  --surface-raised: #202641;
+  --line: rgba(206, 183, 137, 0.23);
+  --line-strong: rgba(206, 183, 137, 0.42);
+  --text: #f8f4eb;
+  --muted: #b6afaa;
+  --green: #d2a85f;
+  --green-dark: #281b08;
+  --header-bg: rgba(8, 10, 23, 0.91);
+  --rail-bg: rgba(20, 23, 41, 0.95);
+  --appearance-bg: rgba(13, 15, 30, 0.98);
+  --backdrop-overlay: rgba(3, 4, 14, 0.2);
+}
+
+body[data-palette="lunar"] {
+  --page-bg: #040914;
+  --surface: rgba(8, 18, 34, 0.9);
+  --surface-solid: #0b1a2d;
+  --surface-raised: #152b45;
+  --line: rgba(148, 178, 226, 0.23);
+  --line-strong: rgba(148, 178, 226, 0.42);
+  --text: #f2f6ff;
+  --muted: #9eacc2;
+  --green: #8c91f2;
+  --green-dark: #10132d;
+  --header-bg: rgba(3, 9, 20, 0.91);
+  --rail-bg: rgba(10, 24, 42, 0.95);
+  --appearance-bg: rgba(7, 17, 32, 0.98);
+  --backdrop-overlay: rgba(1, 5, 14, 0.2);
+}
+
+body[data-palette="wisteria"] {
+  --page-bg: #090713;
+  --surface: rgba(22, 15, 38, 0.9);
+  --surface-solid: #1c142f;
+  --surface-raised: #30214b;
+  --line: rgba(202, 174, 244, 0.23);
+  --line-strong: rgba(202, 174, 244, 0.42);
+  --text: #fbf6ff;
+  --muted: #b9a9c8;
+  --green: #a98ae8;
+  --green-dark: #211232;
+  --header-bg: rgba(10, 7, 20, 0.91);
+  --rail-bg: rgba(29, 20, 45, 0.95);
+  --appearance-bg: rgba(20, 13, 34, 0.98);
+  --backdrop-overlay: rgba(7, 3, 15, 0.2);
+}
+
+body[data-palette="ascension"] {
+  --page-bg: #050610;
+  --surface: rgba(12, 13, 31, 0.91);
+  --surface-solid: #11142b;
+  --surface-raised: #20244a;
+  --line: rgba(147, 133, 244, 0.24);
+  --line-strong: rgba(147, 133, 244, 0.43);
+  --text: #f4f3ff;
+  --muted: #aaa8c2;
+  --green: #806cf0;
+  --green-dark: #151033;
+  --header-bg: rgba(5, 6, 17, 0.92);
+  --rail-bg: rgba(17, 19, 42, 0.96);
+  --appearance-bg: rgba(11, 12, 28, 0.98);
+  --backdrop-overlay: rgba(2, 3, 12, 0.22);
+}
+
+body[data-palette="grail"] {
+  --page-bg: #0e0909;
+  --surface: rgba(31, 20, 18, 0.9);
+  --surface-solid: #271916;
+  --surface-raised: #402a23;
+  --line: rgba(227, 188, 117, 0.23);
+  --line-strong: rgba(227, 188, 117, 0.42);
+  --text: #fff8eb;
+  --muted: #c2ad96;
+  --green: #d5a24b;
+  --green-dark: #2d1d06;
+  --header-bg: rgba(15, 9, 9, 0.92);
+  --rail-bg: rgba(37, 24, 21, 0.95);
+  --appearance-bg: rgba(27, 17, 16, 0.98);
+  --backdrop-overlay: rgba(10, 4, 5, 0.2);
+}
+
+body[data-palette="ghoul"] {
+  --page-bg: #0d0507;
+  --surface: rgba(31, 10, 15, 0.91);
+  --surface-solid: #271017;
+  --surface-raised: #421822;
+  --line: rgba(238, 133, 149, 0.23);
+  --line-strong: rgba(238, 133, 149, 0.42);
+  --text: #fff4f5;
+  --muted: #c4a3a8;
+  --green: #e13c55;
+  --green-dark: #320810;
+  --header-bg: rgba(14, 5, 8, 0.92);
+  --rail-bg: rgba(38, 13, 19, 0.95);
+  --appearance-bg: rgba(29, 9, 14, 0.98);
+  --backdrop-overlay: rgba(10, 1, 4, 0.22);
+}
+
+body[data-palette="soul"] {
+  --page-bg: #07101b;
+  --surface: rgba(13, 26, 43, 0.9);
+  --surface-solid: #112238;
+  --surface-raised: #203852;
+  --line: rgba(186, 211, 239, 0.24);
+  --line-strong: rgba(186, 211, 239, 0.43);
+  --text: #f7fbff;
+  --muted: #a8b7c7;
+  --green: #92bce8;
+  --green-dark: #0a2136;
+  --header-bg: rgba(6, 14, 25, 0.91);
+  --rail-bg: rgba(17, 32, 50, 0.95);
+  --appearance-bg: rgba(11, 23, 39, 0.98);
+  --backdrop-overlay: rgba(3, 9, 17, 0.15);
+}
+
 body[data-palette="light-default"] {
   --page-bg: #f5f0df;
   --surface: rgba(255, 253, 247, 0.9);
@@ -1182,6 +1341,193 @@ body[data-palette="glacier"] {
   --appearance-bg: rgba(248, 253, 254, 0.98);
   --backdrop-overlay: rgba(237, 250, 253, 0.1);
 }
+
+body[data-palette="linen"] {
+  --page-bg: #f4ecdb;
+  --surface: rgba(255, 252, 244, 0.87);
+  --surface-solid: #fffaf0;
+  --surface-raised: #e9e2cf;
+  --line: rgba(82, 78, 52, 0.19);
+  --line-strong: rgba(82, 78, 52, 0.33);
+  --text: #343727;
+  --muted: #74735f;
+  --green: #788b43;
+  --green-dark: #ffffff;
+  --header-bg: rgba(250, 245, 233, 0.91);
+  --rail-bg: rgba(255, 251, 242, 0.95);
+  --appearance-bg: rgba(255, 251, 242, 0.98);
+  --backdrop-overlay: rgba(255, 248, 233, 0.08);
+}
+
+body[data-palette="opal"] {
+  --page-bg: #edf1f8;
+  --surface: rgba(252, 252, 255, 0.86);
+  --surface-solid: #fbfbff;
+  --surface-raised: #e5e6f1;
+  --line: rgba(64, 72, 111, 0.19);
+  --line-strong: rgba(64, 72, 111, 0.33);
+  --text: #30354f;
+  --muted: #6d728b;
+  --green: #7079b9;
+  --green-dark: #ffffff;
+  --header-bg: rgba(246, 248, 253, 0.91);
+  --rail-bg: rgba(251, 251, 255, 0.95);
+  --appearance-bg: rgba(251, 251, 255, 0.98);
+  --backdrop-overlay: rgba(246, 247, 255, 0.08);
+}
+
+body[data-palette="meteor"] {
+  --page-bg: #eef5fb;
+  --surface: rgba(255, 253, 246, 0.86);
+  --surface-solid: #fffaf0;
+  --surface-raised: #e8edf1;
+  --line: rgba(63, 79, 101, 0.19);
+  --line-strong: rgba(63, 79, 101, 0.33);
+  --text: #29374a;
+  --muted: #697788;
+  --green: #dc8a30;
+  --green-dark: #ffffff;
+  --header-bg: rgba(248, 249, 244, 0.91);
+  --rail-bg: rgba(255, 252, 245, 0.95);
+  --appearance-bg: rgba(255, 252, 245, 0.98);
+  --backdrop-overlay: rgba(249, 247, 235, 0.06);
+}
+
+body[data-palette="academy"] {
+  --page-bg: #eaf5f8;
+  --surface: rgba(250, 254, 253, 0.86);
+  --surface-solid: #f8fdfb;
+  --surface-raised: #dceee9;
+  --line: rgba(30, 83, 78, 0.19);
+  --line-strong: rgba(30, 83, 78, 0.33);
+  --text: #193c3c;
+  --muted: #5c7977;
+  --green: #179a70;
+  --green-dark: #ffffff;
+  --header-bg: rgba(240, 250, 249, 0.91);
+  --rail-bg: rgba(247, 253, 251, 0.95);
+  --appearance-bg: rgba(248, 253, 251, 0.98);
+  --backdrop-overlay: rgba(240, 250, 248, 0.06);
+}
+
+body[data-palette="revival"] {
+  --page-bg: #f1eee8;
+  --surface: rgba(255, 251, 244, 0.86);
+  --surface-solid: #fffaf2;
+  --surface-raised: #ece2d4;
+  --line: rgba(91, 70, 49, 0.19);
+  --line-strong: rgba(91, 70, 49, 0.33);
+  --text: #433427;
+  --muted: #7d6c5d;
+  --green: #c77735;
+  --green-dark: #ffffff;
+  --header-bg: rgba(251, 247, 239, 0.91);
+  --rail-bg: rgba(255, 251, 244, 0.95);
+  --appearance-bg: rgba(255, 251, 244, 0.98);
+  --backdrop-overlay: rgba(255, 245, 228, 0.07);
+}
+
+body[data-palette="voyage"] {
+  --page-bg: #e6f5f7;
+  --surface: rgba(248, 254, 254, 0.85);
+  --surface-solid: #f6fdfd;
+  --surface-raised: #d8eef1;
+  --line: rgba(24, 83, 99, 0.19);
+  --line-strong: rgba(24, 83, 99, 0.33);
+  --text: #173b49;
+  --muted: #587783;
+  --green: #148ead;
+  --green-dark: #ffffff;
+  --header-bg: rgba(238, 249, 251, 0.9);
+  --rail-bg: rgba(245, 252, 253, 0.95);
+  --appearance-bg: rgba(247, 253, 253, 0.98);
+  --backdrop-overlay: rgba(239, 250, 251, 0.05);
+}
+
+body[data-palette="titan"],
+body[data-palette="virtual"],
+body[data-palette="stardust"],
+body[data-palette="clover"],
+body[data-palette="reader"],
+body[data-palette="verdict"],
+body[data-palette="cursed"],
+body[data-palette="paradise"],
+body[data-palette="infernal"],
+body[data-palette="eclipse-ash"],
+body[data-palette="chrome"],
+body[data-palette="engine"],
+body[data-palette="jazz"],
+body[data-palette="alchemy"] {
+  --page-bg: #080b12;
+  --surface: rgba(13, 18, 28, 0.9);
+  --surface-solid: #121925;
+  --surface-raised: #1c2634;
+  --line: rgba(178, 199, 220, 0.22);
+  --line-strong: rgba(178, 199, 220, 0.4);
+  --text: #f3f7fa;
+  --muted: #a9b8c6;
+  --green-dark: #061b1d;
+  --header-bg: rgba(8, 12, 19, 0.9);
+  --rail-bg: rgba(15, 21, 31, 0.95);
+  --appearance-bg: rgba(12, 17, 26, 0.98);
+  --backdrop-overlay: rgba(2, 5, 10, 0.22);
+}
+
+body[data-palette="ballroom"],
+body[data-palette="frontier"],
+body[data-palette="wandspire"],
+body[data-palette="shieldbound"],
+body[data-palette="breaker"],
+body[data-palette="striker"],
+body[data-palette="vanguard"],
+body[data-palette="leafdawn"],
+body[data-palette="surge"],
+body[data-palette="psychic"],
+body[data-palette="continent"],
+body[data-palette="sunbreak"],
+body[data-palette="northern"] {
+  --page-bg: #eef4f5;
+  --surface: rgba(248, 252, 251, 0.9);
+  --surface-solid: #f9fcfb;
+  --surface-raised: #ffffff;
+  --line: rgba(38, 67, 76, 0.2);
+  --line-strong: rgba(38, 67, 76, 0.34);
+  --text: #172c34;
+  --muted: #617881;
+  --green-dark: #ffffff;
+  --header-bg: rgba(246, 251, 250, 0.9);
+  --rail-bg: rgba(250, 253, 252, 0.95);
+  --appearance-bg: rgba(250, 253, 252, 0.98);
+  --backdrop-overlay: rgba(244, 250, 249, 0.05);
+}
+
+body[data-palette="titan"] { --green: #e7854f; }
+body[data-palette="virtual"] { --green: #45d8ff; }
+body[data-palette="stardust"] { --green: #d986ff; }
+body[data-palette="clover"] { --green: #75d958; }
+body[data-palette="reader"] { --green: #6d8fff; }
+body[data-palette="verdict"] { --green: #e7525b; }
+body[data-palette="cursed"] { --green: #36cce8; }
+body[data-palette="paradise"] { --green: #ec62bd; }
+body[data-palette="infernal"] { --green: #45aef5; }
+body[data-palette="eclipse-ash"] { --green: #e56548; }
+body[data-palette="chrome"] { --green: #ffd32a; }
+body[data-palette="engine"] { --green: #ee8a32; }
+body[data-palette="jazz"] { --green: #d59b62; }
+body[data-palette="alchemy"] { --green: #d9a85a; }
+body[data-palette="ballroom"] { --green: #b85f87; }
+body[data-palette="frontier"] { --green: #248e91; }
+body[data-palette="wandspire"] { --green: #765fc2; }
+body[data-palette="shieldbound"] { --green: #467da8; }
+body[data-palette="breaker"] { --green: #df7b45; }
+body[data-palette="striker"] { --green: #176ed1; }
+body[data-palette="vanguard"] { --green: #22875f; }
+body[data-palette="leafdawn"] { --green: #4f8a45; }
+body[data-palette="surge"] { --green: #187fc3; }
+body[data-palette="psychic"] { --green: #a15fbd; }
+body[data-palette="continent"] { --green: #287e68; }
+body[data-palette="sunbreak"] { --green: #1689a5; }
+body[data-palette="northern"] { --green: #416f8e; }
 
 /* Popup */
 .popup-body { width: 480px; min-height: 680px; background-color: var(--page-bg); background-image: var(--popup-wallpaper, none); background-position: center; background-size: cover; }

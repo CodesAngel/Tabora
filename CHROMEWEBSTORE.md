@@ -1,6 +1,6 @@
 # Chrome Web Store Listing - Tabora
 
-> Last Updated: 2026-08-31
+> Last Updated: 2026-09-15
 
 ## Store Listing
 
@@ -51,6 +51,8 @@ English
 - Show the new-tab dashboard with several populated boards.
 - Show the toolbar popup saving a tab to a board.
 - Show the light theme, wallpaper selector, and workspace tools.
+- Refresh theme screenshots to include Nocturne Archive or Lunar Tide in dark mode and Linen Conservatory or Opal Headlands in light mode.
+- Include one screenshot showing the expanded 60-wallpaper collection and its original anime-inspired artwork without third-party titles or logos.
 - Refresh the dashboard screenshot after the in-layout welcome guidance is finalized.
 
 ## Permissions Justification
@@ -103,9 +105,9 @@ Tabora's Manifest V3 package is compatible with Chrome, Microsoft Edge, Brave, O
 
 ## Developer Info
 
-**Publisher Name:** TODO before submission
+**Publisher Name:** Mehmood Ul Haq
 
-**Contact Email:** TODO before submission
+**Contact Email:** mehmoodulhaq1040@gmail.com
 
 **Support URL / Email:** TODO before submission
 
@@ -115,6 +117,9 @@ Tabora's Manifest V3 package is compatible with Chrome, Microsoft Edge, Brave, O
 
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
+| Next release | 2026-09-15 | Added 27 original anime-inspired dark and light wallpapers with varied cinematic perspectives, matching interface palettes, and optimized previews | Draft |
+| Next release | 2026-09-15 | Added nine original anime-inspired wallpaper themes with matching interface palettes and optimized previews | Draft |
+| Next release | 2026-09-15 | Added four original dark and light wallpapers with optimized previews and matching interface palettes | Draft |
 | Next release | 2026-08-31 | Added Chromium and Firefox MV3 compatibility plus browser-specific distribution guidance; no new permissions or data transmission | Draft |
 | Next release | 2026-08-31 | Added portable `.tabora` files for exporting and importing individual boards and pages locally | Draft |
 | Next release | 2026-08-31 | Added six premium dark and light wallpaper presets with matching glass UI palettes | Draft |

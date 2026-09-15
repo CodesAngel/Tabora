@@ -15,7 +15,7 @@ Tabora replaces the default new-tab page with an organized dashboard where you c
 - **Duplicate Detection**: Automatically detect and prevent saving duplicate links
 - **Trash & Recovery**: Restore accidentally deleted items from trash
 - **Visual Themes**: Choose between light and dark themes with multiple wallpaper options
-- **14+ Wallpapers**: Including Digital Ocean, Crimson Realm, Aurora Station, Moonlit Garden, Eclipse Forge, Abyss Bloom, Neon Monsoon, Mist Valley, Amber Voyager, Alpine Clear, Coral Coast, Glass Horizon, Sakura Drift, and Arctic Prism
+- **60 Wallpapers**: A balanced dark and light collection, including original cinematic and anime-inspired themes
 - **Undo System**: Undo recent actions to recover from mistakes
 - **Export & Import**: Export pages and boards as .tabora files for sharing or backup
 - **Private Vaults**: Create private local storage areas for sensitive information

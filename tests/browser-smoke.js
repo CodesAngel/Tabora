@@ -220,13 +220,13 @@ async function waitForTargets() {
     document.querySelector('#appearancePanel [data-theme="dark"]').click();
     await new Promise((resolve) => setTimeout(resolve, 300));
     const count = document.querySelectorAll("#wallpaperGrid [data-wallpaper]").length;
-    document.querySelector('[data-wallpaper="eclipse-forge"]').click();
+    document.querySelector('[data-wallpaper="titan-last-wall"]').click();
     await new Promise((resolve) => setTimeout(resolve, 300));
     const darkPalette = document.body.dataset.palette;
     const darkImage = getComputedStyle(document.querySelector("#dashboardBackdrop")).backgroundImage;
     document.querySelector('#appearancePanel [data-theme="light"]').click();
     await new Promise((resolve) => setTimeout(resolve, 300));
-    document.querySelector('[data-wallpaper="sakura-drift"]').click();
+    document.querySelector('[data-wallpaper="northern-oath"]').click();
     await new Promise((resolve) => setTimeout(resolve, 300));
     return {
       darkCount: count,
@@ -237,12 +237,12 @@ async function waitForTargets() {
       lightImage: getComputedStyle(document.querySelector("#dashboardBackdrop")).backgroundImage
     };
   })()`);
-  assert.equal(themes.darkCount, 8);
-  assert.equal(themes.lightCount, 8);
-  assert.equal(themes.darkPalette, "eclipse");
-  assert.match(themes.darkImage, /eclipse-forge\.webp/);
-  assert.equal(themes.lightPalette, "sakura");
-  assert.match(themes.lightImage, /sakura-drift\.webp/);
+  assert.equal(themes.darkCount, 32);
+  assert.equal(themes.lightCount, 30);
+  assert.equal(themes.darkPalette, "titan");
+  assert.match(themes.darkImage, /titan-last-wall\.webp/);
+  assert.equal(themes.lightPalette, "northern");
+  assert.match(themes.lightImage, /northern-oath\.webp/);
 
   const lightSurfaces = await client.evaluate(`(async () => {
     const luminance = (value) => {
@@ -340,9 +340,9 @@ async function waitForTargets() {
     fontLoaded: document.fonts.check('14px "Nunito Sans"'),
     horizontalOverflow: document.documentElement.scrollWidth > innerWidth
   })`);
-  assert.equal(lightPopup.palette, "sakura");
+  assert.equal(lightPopup.palette, "northern");
   assert.equal(lightPopup.light, true);
-  assert.match(lightPopup.wallpaper, /sakura-drift\.webp/);
+  assert.match(lightPopup.wallpaper, /northern-oath\.webp/);
   assert.match(lightPopup.font, /Nunito Sans/);
   assert.equal(lightPopup.fontLoaded, true);
   assert.equal(lightPopup.horizontalOverflow, false);
@@ -354,7 +354,7 @@ async function waitForTargets() {
 
   await client.evaluate(`(async () => {
     await setSetting("theme", "dark");
-    await setSetting("wallpaper", "digital-ocean");
+    await setSetting("wallpaper", "chrome-afterglow");
   })()`);
   await new Promise((resolve) => setTimeout(resolve, 500));
   const darkPopup = await client.evaluate(`({
@@ -362,9 +362,9 @@ async function waitForTargets() {
     light: document.body.classList.contains("light-theme"),
     wallpaper: getComputedStyle(document.body).backgroundImage
   })`);
-  assert.equal(darkPopup.palette, "forest");
+  assert.equal(darkPopup.palette, "chrome");
   assert.equal(darkPopup.light, false);
-  assert.match(darkPopup.wallpaper, /tabora-background\.webp/);
+  assert.match(darkPopup.wallpaper, /chrome-afterglow\.webp/);
 
   await client.evaluate(`(async () => {
     await setSetting("theme", "light");
