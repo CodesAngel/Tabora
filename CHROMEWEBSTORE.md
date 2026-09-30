@@ -118,6 +118,7 @@ Tabora's Manifest V3 package is compatible with Chrome, Microsoft Edge, Brave, O
 
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
+| Next release | 2026-09-30 | Reworked global search into a compact panel with readable link results displayed directly below the search field | Draft |
 | 3.1.0 | 2026-09-15 | Added selective bookmark importing, portable page and board sharing, expanded browser compatibility, improved link details and onboarding, and a 60-wallpaper dark/light collection | Draft |
 | 3.0.2 | 2026-08-31 | Removed an unnecessary background permission and hardened service-worker startup across Chromium browsers | Draft |
 | 3.0.1 | 2026-08-31 | MV3 reliability, optional site access, accessibility, consistent local typography, and theme-aware toolbar popup styling | Draft |

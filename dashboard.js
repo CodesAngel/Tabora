@@ -10,6 +10,9 @@ const nodes = {
   editingPageId: document.querySelector("#editingPageId"),
   searchPanel: document.querySelector("#searchPanel"),
   globalSearch: document.querySelector("#globalSearch"),
+  searchResults: document.querySelector("#searchResults"),
+  searchResultsList: document.querySelector("#searchResultsList"),
+  searchResultsSummary: document.querySelector("#searchResultsSummary"),
   boardGrid: document.querySelector("#boardGrid"),
   contextMenu: document.querySelector("#contextMenu"),
   boardDialog: document.querySelector("#boardDialog"),
@@ -216,6 +219,7 @@ function activeBoards() {
 function render() {
   renderPages();
   renderBoards();
+  renderSearchResults();
   renderToolState();
   renderOnboarding();
 }
@@ -245,8 +249,7 @@ function renderPages() {
 }
 
 function renderBoards() {
-  const query = nodes.globalSearch.value.trim();
-  const boards = activeBoards().filter((board) => boardMatches(board, query));
+  const boards = activeBoards();
   nodes.boardGrid.querySelector(".search-empty")?.remove();
   nodes.boardGrid.querySelector(".add-board-tile")?.remove();
   nodes.boardGrid.querySelector(".organize-drop-indicator")?.remove();
@@ -267,24 +270,16 @@ function renderBoards() {
       .filter((board) => board.column === columnIndex)
       .sort((a, b) => Number(b.pinned) - Number(a.pinned) || (a.columnOrder || 0) - (b.columnOrder || 0))
       .map((board) => {
-        const signature = JSON.stringify([board, query, appState.settings.showBookmarkDescriptions, appState.settings.organizeMode]);
+        const signature = JSON.stringify([board, appState.settings.showBookmarkDescriptions, appState.settings.organizeMode]);
         const cached = boardCardCache.get(board.id);
         if (cached?.signature === signature) return cached.card;
-        const card = createBoardCard(board, query);
+        const card = createBoardCard(board, "");
         boardCardCache.set(board.id, { card, signature });
         return card;
       });
     columns[columnIndex].replaceChildren(...cards);
   }
-  if (!query) nodes.boardGrid.append(createAddBoardTile());
-
-  if (!boards.length && query) {
-    columns.forEach((column) => { column.hidden = true; });
-    const empty = document.createElement("div");
-    empty.className = "search-empty";
-    empty.innerHTML = "<strong>No matching links</strong><span>Try a different title, domain, or URL.</span>";
-    nodes.boardGrid.append(empty);
-  }
+  nodes.boardGrid.append(createAddBoardTile());
 
   const currentBoardIds = new Set(appState.boards.map((board) => board.id));
   for (const boardId of boardCardCache.keys()) {
@@ -1179,6 +1174,76 @@ document.querySelectorAll("dialog").forEach((dialog) => {
 
 const searchTool = document.querySelector("#searchTool");
 const clearSearchButton = document.querySelector("#clearSearch");
+const MAX_SEARCH_RESULTS = 60;
+
+function matchingSearchLinks(query) {
+  const normalizedQuery = String(query || "").trim().toLowerCase();
+  if (!normalizedQuery) return [];
+  const matches = [];
+  for (const board of activeBoards()) {
+    const boardMatchesQuery = board.name.toLowerCase().includes(normalizedQuery);
+    for (const link of ordered(board.links)) {
+      const linkMatchesQuery = [link.title, link.url, link.note]
+        .some((value) => String(value || "").toLowerCase().includes(normalizedQuery));
+      if (boardMatchesQuery || linkMatchesQuery) matches.push({ board, link });
+    }
+  }
+  return matches;
+}
+
+function renderSearchResults() {
+  const query = nodes.globalSearch.value.trim();
+  nodes.searchResultsList.replaceChildren();
+  nodes.searchResults.hidden = !query;
+  if (!query) {
+    nodes.searchResultsSummary.textContent = "Start typing to search";
+    return;
+  }
+
+  const matches = matchingSearchLinks(query);
+  const visibleMatches = matches.slice(0, MAX_SEARCH_RESULTS);
+  nodes.searchResultsSummary.textContent = matches.length > MAX_SEARCH_RESULTS
+    ? `Showing ${MAX_SEARCH_RESULTS} of ${matches.length} matching links`
+    : `${matches.length} matching ${matches.length === 1 ? "link" : "links"}`;
+
+  if (!matches.length) {
+    const empty = document.createElement("li");
+    empty.className = "search-results-empty";
+    const title = document.createElement("strong");
+    title.textContent = "No matching links";
+    const hint = document.createElement("span");
+    hint.textContent = "Try a different title, board, domain, or URL.";
+    empty.append(title, hint);
+    nodes.searchResultsList.append(empty);
+    return;
+  }
+
+  for (const { board, link } of visibleMatches) {
+    const item = document.createElement("li");
+    item.className = "search-result-item";
+    const anchor = document.createElement("a");
+    anchor.className = "search-result-link";
+    anchor.href = link.url;
+    anchor.dataset.searchOpenLink = link.id;
+    anchor.dataset.boardId = board.id;
+    anchor.append(faviconNode(link));
+
+    const copy = document.createElement("span");
+    copy.className = "search-result-copy";
+    const title = document.createElement("strong");
+    title.textContent = link.title || getDomain(link.url) || link.url;
+    const detail = document.createElement("small");
+    detail.textContent = link.note || getDomain(link.url) || link.url;
+    copy.append(title, detail);
+
+    const boardName = document.createElement("span");
+    boardName.className = "search-result-board";
+    boardName.textContent = board.name;
+    anchor.append(copy, boardName);
+    item.append(anchor);
+    nodes.searchResultsList.append(item);
+  }
+}
 
 function syncSearchState() {
   const isOpen = !nodes.searchPanel.hidden;
@@ -1193,6 +1258,7 @@ function openSearch() {
   hideContextMenu();
   nodes.searchPanel.hidden = false;
   syncSearchState();
+  renderSearchResults();
   nodes.globalSearch.focus({ preventScroll: true });
   requestAnimationFrame(() => nodes.globalSearch.focus({ preventScroll: true }));
 }
@@ -1203,8 +1269,10 @@ function closeSearch() {
   searchRenderTimer = null;
   nodes.searchPanel.hidden = true;
   nodes.globalSearch.value = "";
+  nodes.searchResults.hidden = true;
+  nodes.searchResultsList.replaceChildren();
+  nodes.searchResultsSummary.textContent = "Start typing to search";
   syncSearchState();
-  renderBoards();
 }
 
 searchTool.addEventListener("click", () => {
@@ -1216,7 +1284,7 @@ nodes.globalSearch.addEventListener("input", () => {
   if (searchRenderTimer) clearTimeout(searchRenderTimer);
   searchRenderTimer = setTimeout(() => {
     searchRenderTimer = null;
-    renderBoards();
+    renderSearchResults();
   }, 140);
 });
 clearSearchButton.addEventListener("click", () => {
@@ -1224,8 +1292,47 @@ clearSearchButton.addEventListener("click", () => {
   searchRenderTimer = null;
   nodes.globalSearch.value = "";
   syncSearchState();
-  renderBoards();
+  renderSearchResults();
   nodes.globalSearch.focus();
+});
+
+nodes.globalSearch.addEventListener("keydown", (event) => {
+  if (event.key !== "ArrowDown") return;
+  const firstResult = nodes.searchResultsList.querySelector(".search-result-link");
+  if (!firstResult) return;
+  event.preventDefault();
+  firstResult.focus();
+});
+
+nodes.searchResultsList.addEventListener("keydown", (event) => {
+  const results = [...nodes.searchResultsList.querySelectorAll(".search-result-link")];
+  const currentIndex = results.indexOf(document.activeElement);
+  if (currentIndex < 0) return;
+  if (event.key === "ArrowUp" && currentIndex === 0) {
+    event.preventDefault();
+    nodes.globalSearch.focus();
+    return;
+  }
+  let nextIndex = currentIndex;
+  if (event.key === "ArrowDown") nextIndex = Math.min(currentIndex + 1, results.length - 1);
+  else if (event.key === "ArrowUp") nextIndex = Math.max(currentIndex - 1, 0);
+  else if (event.key === "Home") nextIndex = 0;
+  else if (event.key === "End") nextIndex = results.length - 1;
+  else return;
+  event.preventDefault();
+  results[nextIndex].focus();
+  results[nextIndex].scrollIntoView({ block: "nearest" });
+});
+
+nodes.searchResultsList.addEventListener("click", async (event) => {
+  const anchor = event.target.closest("[data-search-open-link]");
+  if (!anchor) return;
+  event.preventDefault();
+  const board = appState.boards.find((item) => item.id === anchor.dataset.boardId);
+  const link = board?.links.find((item) => item.id === anchor.dataset.searchOpenLink);
+  if (!link) return;
+  closeSearch();
+  await openSingleLink(link);
 });
 
 document.querySelector("#incognitoTool").addEventListener("click", async () => {

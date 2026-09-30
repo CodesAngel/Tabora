@@ -229,18 +229,31 @@ async function waitForTargets() {
 
   const search = await client.evaluate(`(async () => {
     const tool = document.querySelector("#searchTool");
+    const boardCountBefore = document.querySelectorAll(".board-card").length;
     tool.click();
     await new Promise((resolve) => setTimeout(resolve, 250));
     const panel = document.querySelector("#searchPanel");
     const rect = panel.getBoundingClientRect();
+    const input = document.querySelector("#globalSearch");
     const opened = {
       visible: !panel.hidden,
       active: document.body.classList.contains("search-active"),
       expanded: tool.getAttribute("aria-expanded"),
-      focused: document.activeElement === document.querySelector("#globalSearch"),
+      focused: document.activeElement === input,
       width: Math.round(rect.width),
       height: Math.round(rect.height)
     };
+    input.value = "Example";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 220));
+    const inputRect = document.querySelector(".search-input-row").getBoundingClientRect();
+    const results = document.querySelector("#searchResults");
+    const resultsRect = results.getBoundingClientRect();
+    opened.resultCount = document.querySelectorAll("#searchResultsList .search-result-link").length;
+    opened.resultsBelowInput = resultsRect.top >= inputRect.bottom - 1;
+    opened.resultsVisible = !results.hidden;
+    opened.boardGridUnchanged = document.querySelectorAll(".board-card").length === boardCountBefore;
+    opened.resultsBackground = getComputedStyle(results).backgroundColor;
     document.querySelector(".workspace-main").click();
     await new Promise((resolve) => setTimeout(resolve, 50));
     return { ...opened, closedOutside: panel.hidden, inactive: !document.body.classList.contains("search-active") };
@@ -249,13 +262,19 @@ async function waitForTargets() {
   assert.equal(search.active, true);
   assert.equal(search.expanded, "true");
   assert.equal(search.focused, true);
-  assert.ok(search.width > 900 && search.height >= 70);
+  assert.ok(search.width >= 500 && search.width <= 720 && search.height >= 50 && search.height <= 80);
+  assert.ok(search.resultCount >= 1);
+  assert.equal(search.resultsBelowInput, true);
+  assert.equal(search.resultsVisible, true);
+  assert.equal(search.boardGridUnchanged, true);
+  assert.notEqual(search.resultsBackground, "rgba(0, 0, 0, 0)");
   assert.equal(search.closedOutside, true);
   assert.equal(search.inactive, true);
 
   if (searchScreenshotPath) {
     await client.evaluate(`document.querySelector("#searchTool").click()`);
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    await client.evaluate(`(() => { const input = document.querySelector("#globalSearch"); input.value = "Example"; input.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+    await new Promise((resolve) => setTimeout(resolve, 300));
     const screenshot = await client.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
     fs.writeFileSync(searchScreenshotPath, Buffer.from(screenshot.data, "base64"));
     await client.evaluate(`document.querySelector("#searchTool").click()`);

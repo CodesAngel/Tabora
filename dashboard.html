@@ -16,9 +16,16 @@
       </header>
 
       <div id="searchPanel" class="floating-search" role="search" hidden>
-        <span class="icon-search"></span>
-        <input id="globalSearch" type="search" placeholder="Search here" autocomplete="off" aria-label="Search boards, links, or URLs">
-        <button id="clearSearch" class="plain-icon-button" aria-label="Clear search" hidden>&times;</button>
+        <div class="search-input-row">
+          <span class="icon-search" aria-hidden="true"></span>
+          <label class="visually-hidden" for="globalSearch">Search boards, links, or URLs</label>
+          <input id="globalSearch" type="search" placeholder="Search bookmarks" autocomplete="off" aria-controls="searchResults" aria-describedby="searchResultsSummary">
+          <button id="clearSearch" class="plain-icon-button" type="button" aria-label="Clear search" hidden>&times;</button>
+        </div>
+        <section id="searchResults" class="search-results" aria-labelledby="searchResultsSummary" hidden>
+          <div class="search-results-header"><h2 id="searchResultsSummary" aria-live="polite">Start typing to search</h2><span>Press Esc to close</span></div>
+          <ul id="searchResultsList" class="search-results-list" role="list"></ul>
+        </section>
       </div>
 
       <section id="onboardingCard" class="onboarding-card" aria-labelledby="onboardingTitle" aria-describedby="onboardingDescription" hidden>

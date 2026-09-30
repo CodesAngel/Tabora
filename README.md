@@ -13,6 +13,7 @@ Tabora replaces the default new-tab page with an organized dashboard where you c
 - **Quick Save**: Save the current tab using Ctrl+Shift+Y keyboard shortcut
 - **Window Snapshots**: Save your entire browser window as a collection of links
 - **Duplicate Detection**: Automatically detect and prevent saving duplicate links
+- **Compact Search**: Find matching links in a focused results panel without replacing the dashboard view
 - **Trash & Recovery**: Restore accidentally deleted items from trash
 - **Visual Themes**: Choose between light and dark themes with multiple wallpaper options
 - **60 Wallpapers**: A balanced dark and light collection, including original cinematic and anime-inspired themes
