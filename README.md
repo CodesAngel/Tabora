@@ -92,7 +92,6 @@ Access workspace settings to:
 - Configure link opening behavior (same tab or new tab)
 - Set quick-save destination
 - Manage incognito mode and privacy settings
-- Change display language
 
 ## Permissions
 
@@ -102,6 +101,7 @@ Tabora requests the following permissions:
 |-----------|---------|
 | `tabs` | Read titles and URLs of tabs you save; create tabs when opening links; optionally close tabs after saving windows |
 | `storage` | Store pages, boards, links, settings, trash data, and undo history locally |
+| `unlimitedStorage` | Lift the 10 MB local storage cap so large bookmark collections and their undo history keep saving |
 | `clipboardWrite` | Copy links, boards, pages, or share packages when you use share or export actions |
 | `bookmarks` (optional) | Import your browser bookmarks only when you choose to do so |
 | `http://*/*`, `https://*/*` (optional) | Check link status and fetch metadata during user-initiated saves or imports |

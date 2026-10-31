@@ -1,4 +1,10 @@
+/* Loaded after shared.js and dashboard.js; relies on their globals:
+   appState, nodes, activePage, setCurrentPage, currentPageId, refresh, renderBoards, showToast,
+   requestDeleteConfirmation, copyShareText, applyAppearance. */
 var extensionApi = globalThis.browser ?? globalThis.chrome;
+
+const VAULT_PBKDF2_ITERATIONS = 600_000;
+const LEGACY_PBKDF2_ITERATIONS = 180_000;
 
 const featureNodes = {
   dialog: document.querySelector("#featureDialog"),
@@ -8,7 +14,8 @@ const featureNodes = {
   graph: document.querySelector("#knowledgeGraph"),
   vaultPage: document.querySelector("#vaultPage"),
   vaultList: document.querySelector("#vaultList"),
-  roomCode: document.querySelector("#roomCode")
+  roomCode: document.querySelector("#roomCode"),
+  roomPassword: document.querySelector("#roomPassword")
 };
 
 const SMART_CATEGORIES = [
@@ -104,8 +111,9 @@ async function checkAllLinks() {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
     try {
-      let response = await fetch(entry.link.url, { method: "HEAD", redirect: "follow", cache: "no-store", signal: controller.signal });
-      if (response.status === 405) response = await fetch(entry.link.url, { method: "GET", redirect: "follow", cache: "no-store", signal: controller.signal });
+      const request = { redirect: "follow", cache: "no-store", credentials: "omit", signal: controller.signal };
+      let response = await fetch(entry.link.url, { ...request, method: "HEAD" });
+      if (response.status === 405) response = await fetch(entry.link.url, { ...request, method: "GET" });
       return { ...entry, health: { status: !response.ok ? "broken" : response.url !== entry.link.url ? "redirected" : "ok", code: response.status, finalUrl: response.url, checkedAt: Date.now() } };
     } catch {
       return { ...entry, health: { status: "broken", code: 0, finalUrl: entry.link.url, checkedAt: Date.now() } };
@@ -243,21 +251,23 @@ function base64ToBytes(value) {
   return Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
 }
 
-async function deriveVaultKey(password, salt) {
+async function deriveVaultKey(password, salt, iterations) {
   const material = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
-  return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 180000, hash: "SHA-256" }, material, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations, hash: "SHA-256" }, material, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
 }
 
 async function encryptWithPassword(value, password) {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const key = await deriveVaultKey(password, salt);
+  const iterations = VAULT_PBKDF2_ITERATIONS;
+  const key = await deriveVaultKey(password, salt, iterations);
   const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify(value)));
-  return { salt: bytesToBase64(salt), iv: bytesToBase64(iv), cipher: bytesToBase64(new Uint8Array(cipher)) };
+  return { salt: bytesToBase64(salt), iv: bytesToBase64(iv), cipher: bytesToBase64(new Uint8Array(cipher)), iterations };
 }
 
 async function decryptWithPassword(value, password) {
-  const key = await deriveVaultKey(password, base64ToBytes(value.salt));
+  const iterations = Number.isInteger(value.iterations) && value.iterations > 0 ? value.iterations : LEGACY_PBKDF2_ITERATIONS;
+  const key = await deriveVaultKey(password, base64ToBytes(value.salt), iterations);
   const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: base64ToBytes(value.iv) }, key, base64ToBytes(value.cipher));
   return JSON.parse(new TextDecoder().decode(plain));
 }
@@ -292,6 +302,12 @@ function renderVaults() {
         await updateTaboraState((state) => {
           state.pages.push(payload.page);
           state.boards.push(...payload.boards);
+          // Vaults made before v3.2 did not carry activity or trash.
+          state.recentlyOpened = [...state.recentlyOpened, ...(payload.recentlyOpened || [])]
+            .sort((a, b) => (b.openedAt || 0) - (a.openedAt || 0))
+            .slice(0, 50);
+          state.trash = [...state.trash, ...(payload.trash || [])]
+            .sort((a, b) => (b.deletedAt || 0) - (a.deletedAt || 0));
           state.vaults = state.vaults.filter((item) => item.id !== vault.id);
           state.settings.activePageId = payload.page.id;
         });
@@ -312,15 +328,26 @@ async function createRoomPackage() {
   const boards = structuredClone(appState.boards.filter((board) => board.pageId === page.id));
   const password = bytesToBase64(crypto.getRandomValues(new Uint8Array(18)));
   const encrypted = await encryptWithPassword({ page, boards, expiresAt: Date.now() + 86_400_000 }, password);
-  const packageValue = `TABORA1.${password}.${btoa(JSON.stringify(encrypted))}`;
+  const packageValue = `TABORA2.${btoa(JSON.stringify(encrypted))}`;
   featureNodes.roomCode.value = packageValue;
-  await copyShareText(packageValue, "Room package copied");
+  featureNodes.roomPassword.value = password;
+  await copyShareText(packageValue, "Room package copied. Send the password separately.");
+}
+
+function readRoomPackage(code, typedPassword) {
+  const parts = code.trim().split(".");
+  if (parts[0] === "TABORA2" && parts.length === 2 && parts[1]) {
+    if (!typedPassword.trim()) throw new Error("Missing password");
+    return { password: typedPassword.trim(), encoded: parts[1] };
+  }
+  // TABORA1 packages from older versions carry their password inline.
+  if (parts[0] === "TABORA1" && parts.length === 3 && parts[1] && parts[2]) return { password: parts[1], encoded: parts[2] };
+  throw new Error("Invalid package");
 }
 
 async function joinRoomPackage() {
   try {
-    const [prefix, password, encoded] = featureNodes.roomCode.value.trim().split(".");
-    if (prefix !== "TABORA1" || !password || !encoded) throw new Error("Invalid package");
+    const { password, encoded } = readRoomPackage(featureNodes.roomCode.value, featureNodes.roomPassword.value);
     const encrypted = JSON.parse(atob(encoded));
     const payload = await decryptWithPassword(encrypted, password);
     if (payload.expiresAt < Date.now()) throw new Error("Expired package");
@@ -329,11 +356,11 @@ async function joinRoomPackage() {
       state.pages.push({ id: pageId, name: cleanName(`${payload.page?.name || "Shared"} Room`, "Shared Room"), protected: false, order: state.pages.length });
       for (const [index, board] of (Array.isArray(payload.boards) ? payload.boards : []).slice(0, 100).entries()) {
         const column = Math.max(0, Math.min(TABORA_BOARD_COLUMNS - 1, Number(board.column) || index % TABORA_BOARD_COLUMNS));
-        const links = (Array.isArray(board.links) ? board.links : []).slice(0, 500).map((link, linkIndex) => ({
+        const links = (Array.isArray(board.links) ? board.links : []).slice(0, TABORA_MAX_SHARED_LINKS).map((link, linkIndex) => ({
           id: makeId("link"),
           title: cleanName(link.title, getDomain(link.url)),
           url: normalizeUrl(link.url),
-          favIconUrl: normalizeUrl(link.favIconUrl) || "",
+          favIconUrl: safeFavIconUrl(link.favIconUrl),
           note: String(link.note || "").slice(0, 2000),
           order: linkIndex
         })).filter((link) => link.url);
@@ -345,9 +372,9 @@ async function joinRoomPackage() {
           column,
           columnOrder: state.boards.filter((item) => item.pageId === pageId && item.column === column).length,
           pinned: Boolean(board.pinned),
-          color: ["green", "blue", "amber", "rose", "violet", "slate"].includes(board.color) ? board.color : "green",
-          icon: ["folder", "briefcase", "book", "star", "code", "spark"].includes(board.icon) ? board.icon : "folder",
-          size: ["small", "medium", "large"].includes(board.size) ? board.size : "medium",
+          color: TABORA_BOARD_COLORS.includes(board.color) ? board.color : "green",
+          icon: TABORA_BOARD_ICONS.includes(board.icon) ? board.icon : "folder",
+          size: TABORA_BOARD_SIZES.includes(board.size) ? board.size : "medium",
           createdAt: Date.now(),
           links
         });
@@ -357,10 +384,14 @@ async function joinRoomPackage() {
     }, { undoLabel: "Room import" });
     setCurrentPage(roomPageId);
     featureNodes.roomCode.value = "";
+    featureNodes.roomPassword.value = "";
     featureNodes.dialog.close();
     await refresh("Room joined");
   } catch (error) {
-    showToast(error.message === "Expired package" ? "This room package has expired" : "Enter a valid Tabora room package", "warning");
+    const message = error.message === "Expired package" ? "This room package has expired"
+      : error.message === "Missing password" ? "Enter the room password"
+        : "Check the room package and password";
+    showToast(message, "warning");
   }
 }
 
@@ -418,17 +449,27 @@ document.querySelector("#vaultForm").addEventListener("submit", async (event) =>
   event.preventDefault();
   const pageId = featureNodes.vaultPage.value;
   const password = document.querySelector("#vaultPassword").value;
-  const page = appState.pages.find((item) => item.id === pageId);
-  if (!page || password.length < 8) return;
-  const boards = appState.boards.filter((board) => board.pageId === pageId);
-  const encrypted = await encryptWithPassword({ page, boards }, password);
-  await extensionApi.storage.local.remove(TABORA_UNDO_KEY);
-  await updateTaboraState((state) => {
+  if (!appState.pages.some((item) => item.id === pageId) || password.length < 8) return;
+  const { result: locked } = await updateTaboraState(async (state) => {
+    const page = state.pages.find((item) => item.id === pageId);
+    if (!page) return false;
+    const boards = state.boards.filter((board) => board.pageId === pageId);
+    const boardIds = new Set(boards.map((board) => board.id));
+    const belongsToPage = (entry) => entry.pageId === pageId || boardIds.has(entry.boardId) || entry.value?.pageId === pageId;
+    const recentlyOpened = state.recentlyOpened.filter(belongsToPage);
+    const trash = state.trash.filter(belongsToPage);
+    const encrypted = await encryptWithPassword({ page, boards, recentlyOpened, trash }, password);
     state.vaults.push({ id: makeId("vault"), createdAt: Date.now(), ...encrypted });
     state.pages = state.pages.filter((item) => item.id !== pageId);
     state.boards = state.boards.filter((board) => board.pageId !== pageId);
+    state.recentlyOpened = state.recentlyOpened.filter((entry) => !belongsToPage(entry));
+    state.trash = state.trash.filter((entry) => !belongsToPage(entry));
     state.settings.activePageId = "home";
+    return true;
   });
+  if (!locked) return;
+  // The undo snapshot would still hold the page in plain text.
+  await extensionApi.storage.local.remove(TABORA_UNDO_KEY);
   if (pageId === currentPageId) setCurrentPage("home");
   document.querySelector("#vaultPassword").value = "";
   await refresh("Page locked in private vault");
@@ -437,6 +478,9 @@ document.querySelector("#vaultForm").addEventListener("submit", async (event) =>
 
 document.querySelector("#createRoom").addEventListener("click", createRoomPackage);
 document.querySelector("#joinRoom").addEventListener("click", joinRoomPackage);
+document.querySelector("#copyRoomPassword").addEventListener("click", () => {
+  if (featureNodes.roomPassword.value) void copyShareText(featureNodes.roomPassword.value, "Room password copied");
+});
 
 document.addEventListener("keydown", async (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z" && !event.target.matches("input, textarea, select")) {

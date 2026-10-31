@@ -3,22 +3,38 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 const storage = {};
+let storageDelayMs = 0;
+const pause = () => (storageDelayMs ? new Promise((resolve) => setTimeout(resolve, storageDelayMs)) : Promise.resolve());
 const chrome = {
   storage: {
     local: {
       async get(keys) {
+        await pause();
         const list = Array.isArray(keys) ? keys : [keys];
-        return Object.fromEntries(list.filter((key) => key in storage).map((key) => [key, storage[key]]));
+        return Object.fromEntries(list.filter((key) => key in storage).map((key) => [key, structuredClone(storage[key])]));
       },
-      async set(values) { Object.assign(storage, structuredClone(values)); },
+      async set(values) { await pause(); Object.assign(storage, structuredClone(values)); },
       async remove(key) { delete storage[key]; }
     }
   }
 };
 
-const context = vm.createContext({ chrome, console, structuredClone, URL, setTimeout, clearTimeout });
+// Node 22 has no Web Locks; this FIFO stand-in has the same request(name, task) contract.
+const lockQueues = new Map();
+const navigator = {
+  locks: {
+    request(name, task) {
+      const previous = lockQueues.get(name) || Promise.resolve();
+      const run = previous.then(() => task());
+      lockQueues.set(name, run.catch(() => {}));
+      return run;
+    }
+  }
+};
+
+const context = vm.createContext({ chrome, navigator, console, structuredClone, URL, setTimeout, clearTimeout });
 const source = `${fs.readFileSync("shared.js", "utf8")}
-globalThis.tabora = { createDefaultState, getTaboraState, saveTaboraState, addBoard, addLink, updateLink, customizeBoard, deleteBoard, undoLastAction, createTaboraBoardPackage, createTaboraPagePackage, parseTaboraPackage, importTaboraPackage, addPage, ensureQuickSaveBoard, revertOrganizeChanges, parseTaboraBackup, restoreTaboraBackup };`;
+globalThis.tabora = { createDefaultState, getTaboraState, saveTaboraState, addBoard, addLink, updateLink, customizeBoard, deleteBoard, undoLastAction, createTaboraBoardPackage, createTaboraPagePackage, parseTaboraPackage, importTaboraPackage, addPage, ensureQuickSaveBoard, revertOrganizeChanges, parseTaboraBackup, restoreTaboraBackup, importLinkGroups, deleteLink, restoreTrashItem, deleteTrashItem, safeFavIconUrl, normalizeState, TABORA_TRASH_RETENTION_MS };`;
 vm.runInContext(source, context);
 
 (async () => {
@@ -118,6 +134,62 @@ vm.runInContext(source, context);
   assert.throws(() => api.parseTaboraBackup({ boards: [] }), /Unsupported Tabora backup/);
   assert.equal(await api.undoLastAction(), "Backup restore");
   assert.ok((await api.getTaboraState()).pages.some((page) => page.name === "Temporary"));
+
+  // Concurrent writers (popup, background, several tabs) must not overwrite each other.
+  const concurrentBoard = (await api.addBoard("home", "Concurrent")).result;
+  storageDelayMs = 2;
+  await Promise.all(Array.from({ length: 12 }, (_, index) => api.addLink(concurrentBoard.id, { url: `https://concurrent.test/${index}` })));
+  storageDelayMs = 0;
+  state = await api.getTaboraState();
+  assert.equal(state.boards.find((board) => board.id === concurrentBoard.id).links.length, 12);
+
+  // Imports and new boards skip links already saved on any page, and drop boards left empty.
+  const deduped = await api.addBoard("home", "Dedupe", [
+    { url: "https://concurrent.test/0" },
+    { url: "https://fresh.test/a" },
+    { url: "https://FRESH.test/a" }
+  ], null, { color: "rose", icon: "code", pinned: true });
+  assert.deepEqual([...deduped.result.links.map((link) => link.url)], ["https://fresh.test/a"]);
+  assert.equal(deduped.result.color, "rose");
+  assert.equal(deduped.result.pinned, true);
+  const boardCountBeforeImport = (await api.getTaboraState()).boards.length;
+  const imported = await api.importLinkGroups("home", [
+    { name: "All duplicates", links: [{ url: "https://fresh.test/a" }] },
+    { name: "New links", links: [{ url: "https://fresh.test/b" }, { url: "https://fresh.test/c" }] }
+  ]);
+  assert.equal(imported.result.boardCount, 1);
+  assert.equal(imported.result.linkCount, 2);
+  assert.equal((await api.getTaboraState()).boards.length, boardCountBeforeImport + 1);
+  assert.equal(await api.undoLastAction(), "Link import");
+  assert.equal((await api.getTaboraState()).boards.length, boardCountBeforeImport);
+
+  // Trash entries are addressed by id, legacy entries get a stable id, and expired ones are dropped.
+  const freshLink = deduped.result.links[0];
+  await api.deleteLink(deduped.result.id, freshLink.id);
+  state = await api.getTaboraState();
+  const trashId = state.trash[0].id;
+  assert.match(trashId, /^trash-/);
+  const restoredItem = await api.restoreTrashItem(trashId);
+  assert.equal(restoredItem.result.value.id, freshLink.id);
+  assert.equal((await api.restoreTrashItem(trashId)).result, null);
+  const legacyTrash = api.normalizeState({ pages: [{ id: "home", name: "Home" }], boards: [], trash: [
+    { type: "link", value: { id: "old-link" }, deletedAt: Date.now() },
+    { type: "link", value: { id: "expired" }, deletedAt: Date.now() - api.TABORA_TRASH_RETENTION_MS - 1000 }
+  ] });
+  assert.equal(legacyTrash.trash.length, 1);
+  assert.equal(legacyTrash.trash[0].id, api.normalizeState({ pages: [{ id: "home", name: "Home" }], boards: [], trash: [{ type: "link", value: { id: "old-link" }, deletedAt: legacyTrash.trash[0].deletedAt }] }).trash[0].id);
+
+  // Favicons: only web URLs and small raster data URIs survive.
+  assert.equal(api.safeFavIconUrl("https://example.com/icon.png"), "https://example.com/icon.png");
+  assert.equal(api.safeFavIconUrl("data:image/png;base64,AAAA"), "data:image/png;base64,AAAA");
+  assert.equal(api.safeFavIconUrl("javascript:alert(1)"), "");
+  assert.equal(api.safeFavIconUrl("data:text/html;base64,AAAA"), "");
+  assert.equal(api.safeFavIconUrl(`data:image/png;base64,${"A".repeat(5000)}`), "");
+
+  // Shared packages are capped per board.
+  const huge = api.createTaboraBoardPackage({ name: "Huge", links: [] });
+  huge.board.links = Array.from({ length: 2001 }, (_, index) => ({ url: `https://huge.test/${index}` }));
+  assert.throws(() => api.parseTaboraPackage(huge), /Too many shared links/);
 
   console.log("shared state tests passed");
 })().catch((error) => {

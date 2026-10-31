@@ -1645,6 +1645,9 @@ body[data-palette="northern"] { --green: #416f8e; }
 .vault-unlock-input { width: 130px; min-height: 34px; padding: 0 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-raised); color: var(--text); }
 .feature-room-code { display: grid; gap: 8px; margin: 16px 0 10px; color: var(--muted); font-size: var(--text-xs); }
 .feature-room-code textarea { min-height: 140px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: var(--text-xs); resize: vertical; }
+.feature-room-password { display: flex; gap: 8px; }
+.feature-room-password input { flex: 1; min-width: 0; min-height: 36px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: var(--text-xs); }
+.feature-room-hint { margin: 0 0 12px; color: var(--muted); font-size: var(--text-xs); }
 .knowledge-graph { min-height: 460px; }
 .graph-map { display: grid; min-height: 440px; padding: 28px; grid-template-columns: repeat(4, minmax(0, 1fr)); align-content: center; gap: 14px; border: 1px solid var(--line); border-radius: 8px; background: color-mix(in srgb, var(--surface-raised) 30%, transparent); }
 .graph-node { min-width: 0; min-height: 38px; padding: 9px 10px; overflow: hidden; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-raised); color: var(--text); font-size: var(--text-xs); text-align: center; text-overflow: ellipsis; white-space: nowrap; }

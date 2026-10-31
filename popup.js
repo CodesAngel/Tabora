@@ -11,63 +11,6 @@ let popupState = createDefaultState();
 let popupWallpaperUrl = "";
 let popupAppearanceKey = "";
 
-const POPUP_APPEARANCES = {
-  "digital-ocean": ["forest", "assets/tabora-background.webp"],
-  "crimson-realm": ["crimson", "assets/crimson-realm.webp"],
-  "aurora-station": ["aurora", "assets/aurora-station.webp"],
-  "moonlit-garden": ["garden", "assets/moonlit-garden.webp"],
-  "eclipse-forge": ["eclipse", "assets/eclipse-forge.webp"],
-  "abyss-bloom": ["abyss", "assets/abyss-bloom.webp"],
-  "neon-monsoon": ["monsoon", "assets/neon-monsoon.webp"],
-  "nocturne-archive": ["nocturne", "assets/nocturne-archive.webp"],
-  "lunar-tide": ["lunar", "assets/lunar-tide.webp"],
-  "wisteria-moon": ["wisteria", "assets/wisteria-moon.webp"],
-  "shadow-ascension": ["ascension", "assets/shadow-ascension.webp"],
-  "grail-mirage": ["grail", "assets/grail-mirage.webp"],
-  "crimson-ghoul": ["ghoul", "assets/crimson-ghoul.webp"],
-  "soul-divide": ["soul", "assets/soul-divide.webp"],
-  "mist-valley": ["mist", "assets/mist-valley.webp"],
-  "amber-voyager": ["amber", "assets/amber-voyager.webp"],
-  "alpine-clear": ["alpine", "assets/alpine-clear.webp"],
-  "coral-coast": ["coast", "assets/coral-coast.webp"],
-  "glass-horizon": ["glass", "assets/glass-horizon.webp"],
-  "sakura-drift": ["sakura", "assets/sakura-drift.webp"],
-  "arctic-prism": ["arctic", "assets/arctic-prism.webp"],
-  "linen-conservatory": ["linen", "assets/linen-conservatory.webp"],
-  "opal-headlands": ["opal", "assets/opal-headlands.webp"],
-  "meteor-hero": ["meteor", "assets/meteor-hero.webp"],
-  "hero-academy": ["academy", "assets/hero-academy.webp"],
-  "neon-revival": ["revival", "assets/neon-revival.webp"],
-  "grand-voyage": ["voyage", "assets/grand-voyage.webp"],
-  "titan-last-wall": ["titan", "assets/titan-last-wall.webp"],
-  "ballroom-radiance": ["ballroom", "assets/ballroom-radiance.webp"],
-  "frontier-odyssey": ["frontier", "assets/frontier-odyssey.webp"],
-  "virtual-skyline": ["virtual", "assets/virtual-skyline.webp"],
-  "bizarre-stardust": ["stardust", "assets/bizarre-stardust.webp"],
-  "clover-grimoire": ["clover", "assets/clover-grimoire.webp"],
-  "wandspire-legacy": ["wandspire", "assets/wandspire-legacy.webp"],
-  "shieldbound-horizon": ["shieldbound", "assets/shieldbound-horizon.webp"],
-  "breaker-dawn": ["breaker", "assets/breaker-dawn.webp"],
-  "striker-blue": ["striker", "assets/striker-blue.webp"],
-  "emerald-vanguard": ["vanguard", "assets/emerald-vanguard.webp"],
-  "reader-apocalypse": ["reader", "assets/reader-apocalypse.webp"],
-  "midnight-verdict": ["verdict", "assets/midnight-verdict.webp"],
-  "hidden-leaf-dawn": ["leafdawn", "assets/hidden-leaf-dawn.webp"],
-  "cursed-meridian": ["cursed", "assets/cursed-meridian.webp"],
-  "celestial-surge": ["surge", "assets/celestial-surge.webp"],
-  "hollow-paradise": ["paradise", "assets/hollow-paradise.webp"],
-  "infernal-brigade": ["infernal", "assets/infernal-brigade.webp"],
-  "ashen-eclipse": ["eclipse-ash", "assets/ashen-eclipse.webp"],
-  "chrome-afterglow": ["chrome", "assets/chrome-afterglow.webp"],
-  "psychic-bloom": ["psychic", "assets/psychic-bloom.webp"],
-  "engine-dusk": ["engine", "assets/engine-dusk.webp"],
-  "unknown-continent": ["continent", "assets/unknown-continent.webp"],
-  "sunbreak-archipelago": ["sunbreak", "assets/sunbreak-archipelago.webp"],
-  "jazz-orbit": ["jazz", "assets/jazz-orbit.webp"],
-  "northern-oath": ["northern", "assets/northern-oath.webp"],
-  "alchemist-equation": ["alchemy", "assets/alchemist-equation.webp"]
-};
-
 function showPopupStatus(message, warning = false) {
   popupStatus.textContent = message;
   popupStatus.classList.toggle("warning", warning);
@@ -86,16 +29,16 @@ async function applyPopupAppearance() {
   const { theme, wallpaper } = popupState.settings;
   const appearanceKey = `${theme}:${wallpaper}`;
   if (appearanceKey === popupAppearanceKey) return;
-  const appearance = POPUP_APPEARANCES[wallpaper];
+  const appearance = TABORA_WALLPAPERS.find((item) => item.id === wallpaper && item.image);
   document.body.classList.toggle("light-theme", theme === "light");
-  document.body.dataset.palette = appearance?.[0] || `${theme}-default`;
+  document.body.dataset.palette = appearance?.palette || `${theme}-default`;
 
   if (popupWallpaperUrl) {
     URL.revokeObjectURL(popupWallpaperUrl);
     popupWallpaperUrl = "";
   }
 
-  let image = appearance?.[1] ? extensionApi.runtime.getURL(appearance[1]) : "";
+  let image = appearance ? extensionApi.runtime.getURL(appearance.image) : "";
   if (wallpaper.startsWith("custom")) {
     try {
       const blob = await getWallpaperBlob(wallpaper);
@@ -149,8 +92,9 @@ function renderRecentBoards() {
   for (const board of boards) {
     const row = document.createElement("article");
     row.className = "popup-board-row";
-    row.innerHTML = `<span></span><div class="popup-board-copy"><strong></strong><span></span></div><button class="popup-open-button" data-open-board="${board.id}"><svg class="popup-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4 11 13"></path><path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"></path></svg>Open all</button>`;
+    row.innerHTML = `<span></span><div class="popup-board-copy"><strong></strong><span></span></div><button class="popup-open-button" data-open-board><svg class="popup-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4 11 13"></path><path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"></path></svg>Open all</button>`;
     setText(row, "strong", board.name);
+    row.querySelector("[data-open-board]").dataset.openBoard = board.id;
     const page = popupState.pages.find((item) => item.id === board.pageId);
     setText(row, ".popup-board-copy span", `${page?.name || "Home"} · ${board.links.length} links`);
     recentBoards.append(row);

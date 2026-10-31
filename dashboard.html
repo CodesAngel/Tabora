@@ -248,9 +248,11 @@
             <div id="vaultList" class="feature-list"></div>
           </section>
           <section class="feature-view" data-feature-section="rooms">
-            <h2>Anonymous Rooms</h2>
-            <div class="feature-action-grid"><button id="createRoom" class="feature-action" type="button"><strong>Create Room Package</strong><span>Current page, expires in 24 hours</span></button></div>
+            <h2>Shared Rooms</h2>
+            <div class="feature-action-grid"><button id="createRoom" class="feature-action" type="button"><strong>Create Room Package</strong><span>Current page, encrypted, expires in 24 hours</span></button></div>
             <label class="feature-room-code">Room package<textarea id="roomCode" class="dark-input" placeholder="Paste a Tabora room package"></textarea></label>
+            <label class="feature-room-code">Room password<span class="feature-room-password"><input id="roomPassword" class="dark-input" type="text" autocomplete="off" spellcheck="false" placeholder="Enter the password you received"><button id="copyRoomPassword" class="secondary-button" type="button">Copy</button></span></label>
+            <p class="feature-room-hint">Send the package and the password through different channels. Anyone with both can open the room.</p>
             <button id="joinRoom" class="accent-button" type="button">Join Room</button>
           </section>
         </div>

@@ -9,7 +9,7 @@
     "48": "icons/tabora-48.png",
     "128": "icons/tabora-128.png"
   },
-  "permissions": ["tabs", "storage", "clipboardWrite"],
+  "permissions": ["tabs", "storage", "unlimitedStorage", "clipboardWrite"],
   "optional_permissions": ["bookmarks"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],
   "browser_specific_settings": {

@@ -5,7 +5,80 @@ const TABORA_BOARD_COLUMNS = 4;
 const TABORA_SHARE_FORMAT = "tabora-share";
 const TABORA_SHARE_VERSION = 1;
 const TABORA_QUICK_SAVE_BOARD_NAME = "Quick Saves";
+const TABORA_STATE_LOCK = "tabora-state";
+const TABORA_TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+const TABORA_MAX_SHARED_LINKS = 2000;
+const TABORA_MAX_FAVICON_LENGTH = 4096;
+const TABORA_BOARD_COLORS = ["green", "blue", "amber", "rose", "violet", "slate"];
+const TABORA_BOARD_ICONS = ["folder", "briefcase", "book", "star", "code", "spark"];
+const TABORA_BOARD_SIZES = ["small", "medium", "large"];
 var taboraApi = globalThis.browser ?? globalThis.chrome;
+
+// Built-in wallpapers; the popup and dashboard both derive their palette and image from this table.
+const TABORA_WALLPAPERS = [
+  { id: "none", name: "Default", theme: "dark", palette: "dark-default", image: "" },
+  { id: "digital-ocean", name: "Digital Ocean", theme: "dark", palette: "forest", image: "assets/tabora-background.webp", thumbnail: "assets/wallpaper-thumbs/tabora-background.webp" },
+  { id: "crimson-realm", name: "Crimson Realm", theme: "dark", palette: "crimson", image: "assets/crimson-realm.webp", thumbnail: "assets/wallpaper-thumbs/crimson-realm.webp" },
+  { id: "aurora-station", name: "Aurora Station", theme: "dark", palette: "aurora", image: "assets/aurora-station.webp" },
+  { id: "moonlit-garden", name: "Moonlit Garden", theme: "dark", palette: "garden", image: "assets/moonlit-garden.webp" },
+  { id: "eclipse-forge", name: "Eclipse Forge", theme: "dark", palette: "eclipse", image: "assets/eclipse-forge.webp" },
+  { id: "abyss-bloom", name: "Abyss Bloom", theme: "dark", palette: "abyss", image: "assets/abyss-bloom.webp" },
+  { id: "neon-monsoon", name: "Neon Monsoon", theme: "dark", palette: "monsoon", image: "assets/neon-monsoon.webp" },
+  { id: "ember-crown", name: "Ember Crown", theme: "dark", palette: "ember", image: "assets/ember-crown.webp", thumbnail: "assets/wallpaper-thumbs/ember-crown.webp" },
+  { id: "cobalt-tide", name: "Cobalt Tide", theme: "dark", palette: "cobalt", image: "assets/cobalt-tide.webp", thumbnail: "assets/wallpaper-thumbs/cobalt-tide.webp" },
+  { id: "verdant-vault", name: "Verdant Vault", theme: "dark", palette: "verdant", image: "assets/verdant-vault.webp", thumbnail: "assets/wallpaper-thumbs/verdant-vault.webp" },
+  { id: "nocturne-archive", name: "Nocturne Archive", theme: "dark", palette: "nocturne", image: "assets/nocturne-archive.webp", thumbnail: "assets/wallpaper-thumbs/nocturne-archive.webp" },
+  { id: "lunar-tide", name: "Lunar Tide", theme: "dark", palette: "lunar", image: "assets/lunar-tide.webp", thumbnail: "assets/wallpaper-thumbs/lunar-tide.webp" },
+  { id: "wisteria-moon", name: "Wisteria Moon", theme: "dark", palette: "wisteria", image: "assets/wisteria-moon.webp", thumbnail: "assets/wallpaper-thumbs/wisteria-moon.webp" },
+  { id: "shadow-ascension", name: "Shadow Ascension", theme: "dark", palette: "ascension", image: "assets/shadow-ascension.webp", thumbnail: "assets/wallpaper-thumbs/shadow-ascension.webp" },
+  { id: "grail-mirage", name: "Grail Mirage", theme: "dark", palette: "grail", image: "assets/grail-mirage.webp", thumbnail: "assets/wallpaper-thumbs/grail-mirage.webp" },
+  { id: "crimson-ghoul", name: "Crimson Ghoul", theme: "dark", palette: "ghoul", image: "assets/crimson-ghoul.webp", thumbnail: "assets/wallpaper-thumbs/crimson-ghoul.webp" },
+  { id: "soul-divide", name: "Soul Divide", theme: "dark", palette: "soul", image: "assets/soul-divide.webp", thumbnail: "assets/wallpaper-thumbs/soul-divide.webp" },
+  { id: "titan-last-wall", name: "Titan's Last Wall", theme: "dark", palette: "titan", image: "assets/titan-last-wall.webp", thumbnail: "assets/wallpaper-thumbs/titan-last-wall.webp" },
+  { id: "virtual-skyline", name: "Virtual Skyline", theme: "dark", palette: "virtual", image: "assets/virtual-skyline.webp", thumbnail: "assets/wallpaper-thumbs/virtual-skyline.webp" },
+  { id: "bizarre-stardust", name: "Bizarre Stardust", theme: "dark", palette: "stardust", image: "assets/bizarre-stardust.webp", thumbnail: "assets/wallpaper-thumbs/bizarre-stardust.webp" },
+  { id: "clover-grimoire", name: "Clover Grimoire", theme: "dark", palette: "clover", image: "assets/clover-grimoire.webp", thumbnail: "assets/wallpaper-thumbs/clover-grimoire.webp" },
+  { id: "reader-apocalypse", name: "Reader's Apocalypse", theme: "dark", palette: "reader", image: "assets/reader-apocalypse.webp", thumbnail: "assets/wallpaper-thumbs/reader-apocalypse.webp" },
+  { id: "midnight-verdict", name: "Midnight Verdict", theme: "dark", palette: "verdict", image: "assets/midnight-verdict.webp", thumbnail: "assets/wallpaper-thumbs/midnight-verdict.webp" },
+  { id: "cursed-meridian", name: "Cursed Meridian", theme: "dark", palette: "cursed", image: "assets/cursed-meridian.webp", thumbnail: "assets/wallpaper-thumbs/cursed-meridian.webp" },
+  { id: "hollow-paradise", name: "Hollow Paradise", theme: "dark", palette: "paradise", image: "assets/hollow-paradise.webp", thumbnail: "assets/wallpaper-thumbs/hollow-paradise.webp" },
+  { id: "infernal-brigade", name: "Infernal Brigade", theme: "dark", palette: "infernal", image: "assets/infernal-brigade.webp", thumbnail: "assets/wallpaper-thumbs/infernal-brigade.webp" },
+  { id: "ashen-eclipse", name: "Ashen Eclipse", theme: "dark", palette: "eclipse-ash", image: "assets/ashen-eclipse.webp", thumbnail: "assets/wallpaper-thumbs/ashen-eclipse.webp" },
+  { id: "chrome-afterglow", name: "Chrome Afterglow", theme: "dark", palette: "chrome", image: "assets/chrome-afterglow.webp", thumbnail: "assets/wallpaper-thumbs/chrome-afterglow.webp" },
+  { id: "engine-dusk", name: "Engine Dusk", theme: "dark", palette: "engine", image: "assets/engine-dusk.webp", thumbnail: "assets/wallpaper-thumbs/engine-dusk.webp" },
+  { id: "jazz-orbit", name: "Jazz Orbit", theme: "dark", palette: "jazz", image: "assets/jazz-orbit.webp", thumbnail: "assets/wallpaper-thumbs/jazz-orbit.webp" },
+  { id: "alchemist-equation", name: "Alchemist's Equation", theme: "dark", palette: "alchemy", image: "assets/alchemist-equation.webp", thumbnail: "assets/wallpaper-thumbs/alchemist-equation.webp" },
+  { id: "none", name: "Default", theme: "light", palette: "light-default", image: "" },
+  { id: "mist-valley", name: "Mist Valley", theme: "light", palette: "mist", image: "assets/mist-valley.webp", thumbnail: "assets/wallpaper-thumbs/mist-valley.webp" },
+  { id: "amber-voyager", name: "Amber Voyager", theme: "light", palette: "amber", image: "assets/amber-voyager.webp", thumbnail: "assets/wallpaper-thumbs/amber-voyager.webp" },
+  { id: "alpine-clear", name: "Alpine Clear", theme: "light", palette: "alpine", image: "assets/alpine-clear.webp" },
+  { id: "coral-coast", name: "Coral Coast", theme: "light", palette: "coast", image: "assets/coral-coast.webp" },
+  { id: "glass-horizon", name: "Glass Horizon", theme: "light", palette: "glass", image: "assets/glass-horizon.webp" },
+  { id: "sakura-drift", name: "Sakura Drift", theme: "light", palette: "sakura", image: "assets/sakura-drift.webp" },
+  { id: "arctic-prism", name: "Arctic Prism", theme: "light", palette: "arctic", image: "assets/arctic-prism.webp" },
+  { id: "soleil-courtyard", name: "Soleil Courtyard", theme: "light", palette: "soleil", image: "assets/soleil-courtyard.webp", thumbnail: "assets/wallpaper-thumbs/soleil-courtyard.webp" },
+  { id: "petal-mist", name: "Petal Mist", theme: "light", palette: "petal", image: "assets/petal-mist.webp", thumbnail: "assets/wallpaper-thumbs/petal-mist.webp" },
+  { id: "glacier-house", name: "Glacier House", theme: "light", palette: "glacier", image: "assets/glacier-house.webp", thumbnail: "assets/wallpaper-thumbs/glacier-house.webp" },
+  { id: "linen-conservatory", name: "Linen Conservatory", theme: "light", palette: "linen", image: "assets/linen-conservatory.webp", thumbnail: "assets/wallpaper-thumbs/linen-conservatory.webp" },
+  { id: "opal-headlands", name: "Opal Headlands", theme: "light", palette: "opal", image: "assets/opal-headlands.webp", thumbnail: "assets/wallpaper-thumbs/opal-headlands.webp" },
+  { id: "meteor-hero", name: "Meteor Hero", theme: "light", palette: "meteor", image: "assets/meteor-hero.webp", thumbnail: "assets/wallpaper-thumbs/meteor-hero.webp" },
+  { id: "hero-academy", name: "Hero Academy", theme: "light", palette: "academy", image: "assets/hero-academy.webp", thumbnail: "assets/wallpaper-thumbs/hero-academy.webp" },
+  { id: "neon-revival", name: "Neon Revival", theme: "light", palette: "revival", image: "assets/neon-revival.webp", thumbnail: "assets/wallpaper-thumbs/neon-revival.webp" },
+  { id: "grand-voyage", name: "Grand Voyage", theme: "light", palette: "voyage", image: "assets/grand-voyage.webp", thumbnail: "assets/wallpaper-thumbs/grand-voyage.webp" },
+  { id: "ballroom-radiance", name: "Ballroom Radiance", theme: "light", palette: "ballroom", image: "assets/ballroom-radiance.webp", thumbnail: "assets/wallpaper-thumbs/ballroom-radiance.webp" },
+  { id: "frontier-odyssey", name: "Frontier Odyssey", theme: "light", palette: "frontier", image: "assets/frontier-odyssey.webp", thumbnail: "assets/wallpaper-thumbs/frontier-odyssey.webp" },
+  { id: "wandspire-legacy", name: "Wandspire Legacy", theme: "light", palette: "wandspire", image: "assets/wandspire-legacy.webp", thumbnail: "assets/wallpaper-thumbs/wandspire-legacy.webp" },
+  { id: "shieldbound-horizon", name: "Shieldbound Horizon", theme: "light", palette: "shieldbound", image: "assets/shieldbound-horizon.webp", thumbnail: "assets/wallpaper-thumbs/shieldbound-horizon.webp" },
+  { id: "breaker-dawn", name: "Breaker Dawn", theme: "light", palette: "breaker", image: "assets/breaker-dawn.webp", thumbnail: "assets/wallpaper-thumbs/breaker-dawn.webp" },
+  { id: "striker-blue", name: "Striker Blue", theme: "light", palette: "striker", image: "assets/striker-blue.webp", thumbnail: "assets/wallpaper-thumbs/striker-blue.webp" },
+  { id: "emerald-vanguard", name: "Emerald Vanguard", theme: "light", palette: "vanguard", image: "assets/emerald-vanguard.webp", thumbnail: "assets/wallpaper-thumbs/emerald-vanguard.webp" },
+  { id: "hidden-leaf-dawn", name: "Hidden Leaf Dawn", theme: "light", palette: "leafdawn", image: "assets/hidden-leaf-dawn.webp", thumbnail: "assets/wallpaper-thumbs/hidden-leaf-dawn.webp" },
+  { id: "celestial-surge", name: "Celestial Surge", theme: "light", palette: "surge", image: "assets/celestial-surge.webp", thumbnail: "assets/wallpaper-thumbs/celestial-surge.webp" },
+  { id: "psychic-bloom", name: "Psychic Bloom", theme: "light", palette: "psychic", image: "assets/psychic-bloom.webp", thumbnail: "assets/wallpaper-thumbs/psychic-bloom.webp" },
+  { id: "unknown-continent", name: "Unknown Continent", theme: "light", palette: "continent", image: "assets/unknown-continent.webp", thumbnail: "assets/wallpaper-thumbs/unknown-continent.webp" },
+  { id: "sunbreak-archipelago", name: "Sunbreak Archipelago", theme: "light", palette: "sunbreak", image: "assets/sunbreak-archipelago.webp", thumbnail: "assets/wallpaper-thumbs/sunbreak-archipelago.webp" },
+  { id: "northern-oath", name: "Northern Oath", theme: "light", palette: "northern", image: "assets/northern-oath.webp", thumbnail: "assets/wallpaper-thumbs/northern-oath.webp" }
+];
 
 function makeId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -47,9 +120,9 @@ function normalizeState(value) {
   state.pages = Array.isArray(state.pages) && state.pages.length ? state.pages : fallback.pages;
   state.boards = Array.isArray(state.boards) ? state.boards : [];
   for (const board of state.boards) {
-    board.color = board.color || "green";
-    board.icon = board.icon || "folder";
-    board.size = ["small", "medium", "large"].includes(board.size) ? board.size : "medium";
+    board.color = TABORA_BOARD_COLORS.includes(board.color) ? board.color : "green";
+    board.icon = TABORA_BOARD_ICONS.includes(board.icon) ? board.icon : "folder";
+    board.size = TABORA_BOARD_SIZES.includes(board.size) ? board.size : "medium";
     board.pinned = Boolean(board.pinned || board.starred);
     if (board.quickSave) board.quickSave = true;
     else delete board.quickSave;
@@ -79,7 +152,13 @@ function normalizeState(value) {
         .forEach((board, index) => { board.columnOrder = index; });
     }
   }
-  state.trash = Array.isArray(state.trash) ? state.trash : [];
+  const trashCutoff = Date.now() - TABORA_TRASH_RETENTION_MS;
+  state.trash = (Array.isArray(state.trash) ? state.trash : [])
+    .filter((item) => item && typeof item === "object" && !(item.deletedAt && item.deletedAt < trashCutoff));
+  state.trash.forEach((item, index) => {
+    // Older entries have no id; derive a stable one so the UI and storage agree before the next save.
+    if (!item.id) item.id = `trash-${item.deletedAt || 0}-${item.value?.id || index}`;
+  });
   state.recentlyOpened = Array.isArray(state.recentlyOpened) ? state.recentlyOpened.slice(0, 50) : [];
   state.moods = Array.isArray(state.moods) ? state.moods : [];
   state.vaults = Array.isArray(state.vaults) ? state.vaults : [];
@@ -127,7 +206,7 @@ function migrateV1Data(sessions = [], workspaces = []) {
         id: makeId(`link-${linkIndex}`),
         title: tab.title || tab.url || "Untitled link",
         url: tab.url || "",
-        favIconUrl: tab.favIconUrl || "",
+        favIconUrl: safeFavIconUrl(tab.favIconUrl),
         note: "",
         order: linkIndex
       }))
@@ -176,20 +255,31 @@ async function getUndoSnapshot() {
   return data[TABORA_UNDO_KEY] || null;
 }
 
+// The dashboard, popup, and background all write the same key, so serialize read-modify-write cycles.
+// Web Locks are not re-entrant: never call updateTaboraState from inside an updater.
+function withStateLock(task) {
+  const locks = globalThis.navigator?.locks;
+  return locks ? locks.request(TABORA_STATE_LOCK, task) : task();
+}
+
 async function undoLastAction() {
-  const snapshot = await getUndoSnapshot();
-  if (!snapshot?.state) return null;
-  await saveTaboraState(snapshot.state);
-  await taboraApi.storage.local.remove(TABORA_UNDO_KEY);
-  return snapshot.label;
+  return withStateLock(async () => {
+    const snapshot = await getUndoSnapshot();
+    if (!snapshot?.state) return null;
+    await saveTaboraState(snapshot.state);
+    await taboraApi.storage.local.remove(TABORA_UNDO_KEY);
+    return snapshot.label;
+  });
 }
 
 async function updateTaboraState(updater, options = {}) {
-  const state = await getTaboraState();
-  if (options.undoLabel) await saveUndoSnapshot(state, options.undoLabel);
-  const result = await updater(state);
-  await saveTaboraState(state);
-  return { state, result };
+  return withStateLock(async () => {
+    const state = await getTaboraState();
+    if (options.undoLabel) await saveUndoSnapshot(state, options.undoLabel);
+    const result = await updater(state);
+    await saveTaboraState(state);
+    return { state, result };
+  });
 }
 
 function ordered(items) {
@@ -213,6 +303,18 @@ function normalizeUrl(value) {
   }
 }
 
+function safeFavIconUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw || raw.length > TABORA_MAX_FAVICON_LENGTH) return "";
+  if (/^data:image\/(png|gif|jpeg|webp|x-icon|vnd\.microsoft\.icon);base64,/i.test(raw)) return raw;
+  try {
+    const url = new URL(raw);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
 function getDomain(value) {
   try {
     return new URL(value).hostname.replace(/^www\./, "");
@@ -227,7 +329,7 @@ function sharedLinkSnapshot(link, index) {
   return {
     title: cleanName(link.title, getDomain(url)),
     url,
-    favIconUrl: String(link.favIconUrl || "").slice(0, 4096),
+    favIconUrl: safeFavIconUrl(link.favIconUrl),
     note: String(link.note || "").trim().slice(0, 2000),
     order: index
   };
@@ -241,9 +343,9 @@ function sharedBoardSnapshot(board, index = 0) {
     .map((link, linkIndex) => ({ ...link, order: linkIndex }));
   return {
     name: cleanName(board?.name, `Shared Board ${index + 1}`),
-    color: ["green", "blue", "amber", "rose", "violet", "slate"].includes(board?.color) ? board.color : "green",
-    icon: ["folder", "briefcase", "book", "star", "code", "spark"].includes(board?.icon) ? board.icon : "folder",
-    size: ["small", "medium", "large"].includes(board?.size) ? board.size : "medium",
+    color: TABORA_BOARD_COLORS.includes(board?.color) ? board.color : "green",
+    icon: TABORA_BOARD_ICONS.includes(board?.icon) ? board.icon : "folder",
+    size: TABORA_BOARD_SIZES.includes(board?.size) ? board.size : "medium",
     pinned: Boolean(board?.pinned),
     column: Math.max(0, Math.min(TABORA_BOARD_COLUMNS - 1, Number(board?.column) || 0)),
     columnOrder: Math.max(0, Number(board?.columnOrder) || 0),
@@ -274,17 +376,23 @@ function createTaboraPagePackage(page, boards) {
   };
 }
 
+function assertSharedLinkLimit(board) {
+  if (Array.isArray(board?.links) && board.links.length > TABORA_MAX_SHARED_LINKS) throw new Error("Too many shared links");
+}
+
 function parseTaboraPackage(value) {
   if (!value || typeof value !== "object" || value.format !== TABORA_SHARE_FORMAT || value.version !== TABORA_SHARE_VERSION) {
     throw new Error("Unsupported Tabora package");
   }
   if (value.type === "board") {
     if (!value.board || typeof value.board !== "object") throw new Error("Missing shared board");
+    assertSharedLinkLimit(value.board);
     return { type: "board", board: sharedBoardSnapshot(value.board) };
   }
   if (value.type === "page") {
     if (!value.page || typeof value.page !== "object" || !Array.isArray(value.boards)) throw new Error("Missing shared page");
     if (value.boards.length > 100) throw new Error("Too many shared boards");
+    value.boards.forEach(assertSharedLinkLimit);
     return {
       type: "page",
       page: { name: cleanName(value.page.name, "Shared Page") },
@@ -386,7 +494,7 @@ function parseTaboraBackup(value) {
           id: TABORA_ID_PATTERN.test(String(link.id)) ? String(link.id) : makeId("link"),
           title: cleanName(link.title, getDomain(normalizeUrl(link.url))),
           url: normalizeUrl(link.url),
-          favIconUrl: String(link.favIconUrl || ""),
+          favIconUrl: safeFavIconUrl(link.favIconUrl),
           note: String(link.note || "").trim().slice(0, 2000),
           order: Number.isFinite(link.order) ? link.order : index
         }))
@@ -439,7 +547,7 @@ async function deletePage(pageId) {
     if (!page || page.protected) return false;
     const removedBoards = state.boards.filter((board) => board.pageId === pageId);
     for (const board of removedBoards) {
-      state.trash.unshift({ type: "board", value: board, pageName: page.name, deletedAt: Date.now() });
+      state.trash.unshift(createTrashEntry({ type: "board", value: board, pageName: page.name }));
     }
     state.boards = state.boards.filter((board) => board.pageId !== pageId);
     state.pages = state.pages.filter((item) => item.id !== pageId);
@@ -448,8 +556,23 @@ async function deletePage(pageId) {
   }, { undoLabel: "Page deletion" });
 }
 
-async function addBoard(pageId, name, links = [], placement = null) {
-  return updateTaboraState((state) => createBoardInState(state, pageId, name, links, placement));
+async function addBoard(pageId, name, links = [], placement = null, customization = null) {
+  return updateTaboraState((state) => {
+    const board = createBoardInState(state, pageId, name, links, placement);
+    if (customization) applyBoardCustomization(board, customization);
+    return board;
+  });
+}
+
+async function importLinkGroups(pageId, groups) {
+  return updateTaboraState((state) => {
+    const created = groups.map((group) => createBoardInState(state, pageId, group.name, group.links));
+    // Drop boards whose links were all already saved elsewhere.
+    const emptyIds = new Set(created.filter((board) => !board.links.length).map((board) => board.id));
+    state.boards = state.boards.filter((board) => !emptyIds.has(board.id));
+    const boards = created.filter((board) => !emptyIds.has(board.id));
+    return { boardCount: boards.length, linkCount: boards.reduce((count, board) => count + board.links.length, 0) };
+  }, { undoLabel: "Link import" });
 }
 
 async function ensureQuickSaveBoard(pageId) {
@@ -465,6 +588,7 @@ async function ensureQuickSaveBoard(pageId) {
   });
 }
 
+// Saved links are unique across all pages; shared packages, rooms, and backups are copied as-is.
 function createBoardInState(state, pageId, name, links = [], placement = null) {
   const page = state.pages.find((item) => item.id === pageId) || state.pages[0];
   const pageBoards = ordered(state.boards.filter((item) => item.pageId === page.id));
@@ -477,6 +601,7 @@ function createBoardInState(state, pageId, name, links = [], placement = null) {
   for (const item of columnBoards) {
     if ((item.columnOrder || 0) >= columnOrder) item.columnOrder += 1;
   }
+  const savedUrls = new Set(state.boards.flatMap((item) => item.links.map((link) => normalizeUrl(link.url))));
   const board = {
     id: makeId("board"),
     pageId: page.id,
@@ -490,17 +615,36 @@ function createBoardInState(state, pageId, name, links = [], placement = null) {
     icon: "folder",
     size: "medium",
     createdAt: Date.now(),
-    links: links.map((link, index) => ({
-      id: link.id || makeId("link"),
-      title: cleanName(link.title, getDomain(link.url)),
-      url: normalizeUrl(link.url),
-      favIconUrl: link.favIconUrl || "",
-      note: link.note || "",
-      order: index
-    })).filter((link) => link.url)
+    links: links
+      .map((link) => ({
+        id: link.id || makeId("link"),
+        title: cleanName(link.title, getDomain(link.url)),
+        url: normalizeUrl(link.url),
+        favIconUrl: safeFavIconUrl(link.favIconUrl),
+        note: String(link.note || "").trim().slice(0, 2000)
+      }))
+      .filter((link) => {
+        if (!link.url || savedUrls.has(link.url)) return false;
+        savedUrls.add(link.url);
+        return true;
+      })
+      .map((link, index) => ({ ...link, order: index }))
   };
   state.boards.push(board);
   return board;
+}
+
+function applyBoardCustomization(board, values = {}) {
+  if (values.name !== undefined) board.name = cleanName(values.name, board.name);
+  if (TABORA_BOARD_COLORS.includes(values.color)) board.color = values.color;
+  if (TABORA_BOARD_ICONS.includes(values.icon)) board.icon = values.icon;
+  if (TABORA_BOARD_SIZES.includes(values.size)) board.size = values.size;
+  if (values.pinned !== undefined) board.pinned = Boolean(values.pinned);
+  return board;
+}
+
+function createTrashEntry(fields) {
+  return { id: makeId("trash"), deletedAt: Date.now(), ...fields };
 }
 
 async function renameBoard(boardId, name) {
@@ -513,13 +657,7 @@ async function renameBoard(boardId, name) {
 async function customizeBoard(boardId, values = {}) {
   return updateTaboraState((state) => {
     const board = state.boards.find((item) => item.id === boardId);
-    if (!board) return null;
-    if (values.name !== undefined) board.name = cleanName(values.name, board.name);
-    if (["green", "blue", "amber", "rose", "violet", "slate"].includes(values.color)) board.color = values.color;
-    if (["folder", "briefcase", "book", "star", "code", "spark"].includes(values.icon)) board.icon = values.icon;
-    if (["small", "medium", "large"].includes(values.size)) board.size = values.size;
-    if (values.pinned !== undefined) board.pinned = Boolean(values.pinned);
-    return board;
+    return board ? applyBoardCustomization(board, values) : null;
   }, { undoLabel: "Board customization" });
 }
 
@@ -540,15 +678,16 @@ async function deleteBoard(boardId) {
     const board = state.boards.find((item) => item.id === boardId);
     if (!board) return;
     const page = state.pages.find((item) => item.id === board.pageId);
-    state.trash.unshift({ type: "board", value: structuredClone(board), pageName: page?.name || "Home", deletedAt: Date.now() });
+    state.trash.unshift(createTrashEntry({ type: "board", value: structuredClone(board), pageName: page?.name || "Home" }));
     state.boards = state.boards.filter((item) => item.id !== boardId);
   }, { undoLabel: "Board deletion" });
 }
 
-async function restoreTrashItem(index) {
+async function restoreTrashItem(trashId) {
   return updateTaboraState((state) => {
+    const index = state.trash.findIndex((entry) => entry.id === trashId);
+    if (index < 0) return null;
     const [item] = state.trash.splice(index, 1);
-    if (!item) return;
     if (item.type === "link") {
       let board = state.boards.find((entry) => entry.id === item.boardId);
       if (!board) {
@@ -574,9 +713,9 @@ async function restoreTrashItem(index) {
       const link = structuredClone(item.value);
       link.order = board.links.length;
       board.links.push(link);
-      return;
+      return item;
     }
-    if (item.type !== "board") return;
+    if (item.type !== "board") return item;
     const board = item.value;
     if (!state.pages.some((page) => page.id === board.pageId)) board.pageId = "home";
     board.order = state.boards.filter((entry) => entry.pageId === board.pageId).length;
@@ -584,6 +723,7 @@ async function restoreTrashItem(index) {
     board.column = destinationBoards.length % TABORA_BOARD_COLUMNS;
     board.columnOrder = destinationBoards.filter((entry) => entry.column === board.column).length;
     state.boards.push(board);
+    return item;
   });
 }
 
@@ -593,9 +733,9 @@ async function emptyTrash() {
   });
 }
 
-async function deleteTrashItem(index) {
+async function deleteTrashItem(trashId) {
   return updateTaboraState((state) => {
-    state.trash.splice(index, 1);
+    state.trash = state.trash.filter((entry) => entry.id !== trashId);
   });
 }
 
@@ -611,7 +751,7 @@ async function addLink(boardId, values) {
       id: makeId("link"),
       title: cleanName(values.title, getDomain(url)),
       url,
-      favIconUrl: values.favIconUrl || "",
+      favIconUrl: safeFavIconUrl(values.favIconUrl),
       note: String(values.note || "").trim().slice(0, 2000),
       order: board.links.length
     };
@@ -631,7 +771,7 @@ async function updateLink(boardId, linkId, values) {
     if (url) link.url = url;
     link.title = cleanName(values.title, link.title);
     link.note = String(values.note || "").trim().slice(0, 2000);
-    if (Object.hasOwn(values, "favIconUrl")) link.favIconUrl = values.favIconUrl || "";
+    if (Object.hasOwn(values, "favIconUrl")) link.favIconUrl = safeFavIconUrl(values.favIconUrl);
   });
 }
 
@@ -641,15 +781,14 @@ async function deleteLink(boardId, linkId) {
     const link = board?.links.find((item) => item.id === linkId);
     if (!board || !link) return;
     const page = state.pages.find((item) => item.id === board.pageId);
-    state.trash.unshift({
+    state.trash.unshift(createTrashEntry({
       type: "link",
       value: structuredClone(link),
       boardId: board.id,
       boardName: board.name,
       pageId: board.pageId,
-      pageName: page?.name || "Home",
-      deletedAt: Date.now()
-    });
+      pageName: page?.name || "Home"
+    }));
     board.links = board.links.filter((item) => item.id !== linkId);
     board.links.forEach((item, index) => { item.order = index; });
   }, { undoLabel: "Bookmark deletion" });

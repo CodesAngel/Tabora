@@ -119,71 +119,6 @@ const ORGANIZE_DONE_ICON = '<svg class="rail-icon" viewBox="0 0 24 24" aria-hidd
 const PRIVACY_VISIBLE_ICON = '<svg class="rail-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg>';
 const PRIVACY_HIDDEN_ICON = '<svg class="rail-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"></path><path d="M10.6 6.2A10.8 10.8 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-2.1 2.8M6.3 6.3C3.9 8 2.5 12 2.5 12s3.5 6 9.5 6c1.5 0 2.8-.4 4-1"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg>';
 
-const WALLPAPERS = [
-  { id: "none", name: "Default", theme: "dark", palette: "dark-default", image: "" },
-  { id: "digital-ocean", name: "Digital Ocean", theme: "dark", palette: "forest", image: "assets/tabora-background.webp", thumbnail: "assets/wallpaper-thumbs/tabora-background.webp" },
-  { id: "crimson-realm", name: "Crimson Realm", theme: "dark", palette: "crimson", image: "assets/crimson-realm.webp", thumbnail: "assets/wallpaper-thumbs/crimson-realm.webp" },
-  { id: "aurora-station", name: "Aurora Station", theme: "dark", palette: "aurora", image: "assets/aurora-station.webp" },
-  { id: "moonlit-garden", name: "Moonlit Garden", theme: "dark", palette: "garden", image: "assets/moonlit-garden.webp" },
-  { id: "eclipse-forge", name: "Eclipse Forge", theme: "dark", palette: "eclipse", image: "assets/eclipse-forge.webp" },
-  { id: "abyss-bloom", name: "Abyss Bloom", theme: "dark", palette: "abyss", image: "assets/abyss-bloom.webp" },
-  { id: "neon-monsoon", name: "Neon Monsoon", theme: "dark", palette: "monsoon", image: "assets/neon-monsoon.webp" },
-  { id: "ember-crown", name: "Ember Crown", theme: "dark", palette: "ember", image: "assets/ember-crown.webp", thumbnail: "assets/wallpaper-thumbs/ember-crown.webp" },
-  { id: "cobalt-tide", name: "Cobalt Tide", theme: "dark", palette: "cobalt", image: "assets/cobalt-tide.webp", thumbnail: "assets/wallpaper-thumbs/cobalt-tide.webp" },
-  { id: "verdant-vault", name: "Verdant Vault", theme: "dark", palette: "verdant", image: "assets/verdant-vault.webp", thumbnail: "assets/wallpaper-thumbs/verdant-vault.webp" },
-  { id: "nocturne-archive", name: "Nocturne Archive", theme: "dark", palette: "nocturne", image: "assets/nocturne-archive.webp", thumbnail: "assets/wallpaper-thumbs/nocturne-archive.webp" },
-  { id: "lunar-tide", name: "Lunar Tide", theme: "dark", palette: "lunar", image: "assets/lunar-tide.webp", thumbnail: "assets/wallpaper-thumbs/lunar-tide.webp" },
-  { id: "wisteria-moon", name: "Wisteria Moon", theme: "dark", palette: "wisteria", image: "assets/wisteria-moon.webp", thumbnail: "assets/wallpaper-thumbs/wisteria-moon.webp" },
-  { id: "shadow-ascension", name: "Shadow Ascension", theme: "dark", palette: "ascension", image: "assets/shadow-ascension.webp", thumbnail: "assets/wallpaper-thumbs/shadow-ascension.webp" },
-  { id: "grail-mirage", name: "Grail Mirage", theme: "dark", palette: "grail", image: "assets/grail-mirage.webp", thumbnail: "assets/wallpaper-thumbs/grail-mirage.webp" },
-  { id: "crimson-ghoul", name: "Crimson Ghoul", theme: "dark", palette: "ghoul", image: "assets/crimson-ghoul.webp", thumbnail: "assets/wallpaper-thumbs/crimson-ghoul.webp" },
-  { id: "soul-divide", name: "Soul Divide", theme: "dark", palette: "soul", image: "assets/soul-divide.webp", thumbnail: "assets/wallpaper-thumbs/soul-divide.webp" },
-  { id: "titan-last-wall", name: "Titan's Last Wall", theme: "dark", palette: "titan", image: "assets/titan-last-wall.webp", thumbnail: "assets/wallpaper-thumbs/titan-last-wall.webp" },
-  { id: "virtual-skyline", name: "Virtual Skyline", theme: "dark", palette: "virtual", image: "assets/virtual-skyline.webp", thumbnail: "assets/wallpaper-thumbs/virtual-skyline.webp" },
-  { id: "bizarre-stardust", name: "Bizarre Stardust", theme: "dark", palette: "stardust", image: "assets/bizarre-stardust.webp", thumbnail: "assets/wallpaper-thumbs/bizarre-stardust.webp" },
-  { id: "clover-grimoire", name: "Clover Grimoire", theme: "dark", palette: "clover", image: "assets/clover-grimoire.webp", thumbnail: "assets/wallpaper-thumbs/clover-grimoire.webp" },
-  { id: "reader-apocalypse", name: "Reader's Apocalypse", theme: "dark", palette: "reader", image: "assets/reader-apocalypse.webp", thumbnail: "assets/wallpaper-thumbs/reader-apocalypse.webp" },
-  { id: "midnight-verdict", name: "Midnight Verdict", theme: "dark", palette: "verdict", image: "assets/midnight-verdict.webp", thumbnail: "assets/wallpaper-thumbs/midnight-verdict.webp" },
-  { id: "cursed-meridian", name: "Cursed Meridian", theme: "dark", palette: "cursed", image: "assets/cursed-meridian.webp", thumbnail: "assets/wallpaper-thumbs/cursed-meridian.webp" },
-  { id: "hollow-paradise", name: "Hollow Paradise", theme: "dark", palette: "paradise", image: "assets/hollow-paradise.webp", thumbnail: "assets/wallpaper-thumbs/hollow-paradise.webp" },
-  { id: "infernal-brigade", name: "Infernal Brigade", theme: "dark", palette: "infernal", image: "assets/infernal-brigade.webp", thumbnail: "assets/wallpaper-thumbs/infernal-brigade.webp" },
-  { id: "ashen-eclipse", name: "Ashen Eclipse", theme: "dark", palette: "eclipse-ash", image: "assets/ashen-eclipse.webp", thumbnail: "assets/wallpaper-thumbs/ashen-eclipse.webp" },
-  { id: "chrome-afterglow", name: "Chrome Afterglow", theme: "dark", palette: "chrome", image: "assets/chrome-afterglow.webp", thumbnail: "assets/wallpaper-thumbs/chrome-afterglow.webp" },
-  { id: "engine-dusk", name: "Engine Dusk", theme: "dark", palette: "engine", image: "assets/engine-dusk.webp", thumbnail: "assets/wallpaper-thumbs/engine-dusk.webp" },
-  { id: "jazz-orbit", name: "Jazz Orbit", theme: "dark", palette: "jazz", image: "assets/jazz-orbit.webp", thumbnail: "assets/wallpaper-thumbs/jazz-orbit.webp" },
-  { id: "alchemist-equation", name: "Alchemist's Equation", theme: "dark", palette: "alchemy", image: "assets/alchemist-equation.webp", thumbnail: "assets/wallpaper-thumbs/alchemist-equation.webp" },
-  { id: "none", name: "Default", theme: "light", palette: "light-default", image: "" },
-  { id: "mist-valley", name: "Mist Valley", theme: "light", palette: "mist", image: "assets/mist-valley.webp", thumbnail: "assets/wallpaper-thumbs/mist-valley.webp" },
-  { id: "amber-voyager", name: "Amber Voyager", theme: "light", palette: "amber", image: "assets/amber-voyager.webp", thumbnail: "assets/wallpaper-thumbs/amber-voyager.webp" },
-  { id: "alpine-clear", name: "Alpine Clear", theme: "light", palette: "alpine", image: "assets/alpine-clear.webp" },
-  { id: "coral-coast", name: "Coral Coast", theme: "light", palette: "coast", image: "assets/coral-coast.webp" },
-  { id: "glass-horizon", name: "Glass Horizon", theme: "light", palette: "glass", image: "assets/glass-horizon.webp" },
-  { id: "sakura-drift", name: "Sakura Drift", theme: "light", palette: "sakura", image: "assets/sakura-drift.webp" },
-  { id: "arctic-prism", name: "Arctic Prism", theme: "light", palette: "arctic", image: "assets/arctic-prism.webp" },
-  { id: "soleil-courtyard", name: "Soleil Courtyard", theme: "light", palette: "soleil", image: "assets/soleil-courtyard.webp", thumbnail: "assets/wallpaper-thumbs/soleil-courtyard.webp" },
-  { id: "petal-mist", name: "Petal Mist", theme: "light", palette: "petal", image: "assets/petal-mist.webp", thumbnail: "assets/wallpaper-thumbs/petal-mist.webp" },
-  { id: "glacier-house", name: "Glacier House", theme: "light", palette: "glacier", image: "assets/glacier-house.webp", thumbnail: "assets/wallpaper-thumbs/glacier-house.webp" },
-  { id: "linen-conservatory", name: "Linen Conservatory", theme: "light", palette: "linen", image: "assets/linen-conservatory.webp", thumbnail: "assets/wallpaper-thumbs/linen-conservatory.webp" },
-  { id: "opal-headlands", name: "Opal Headlands", theme: "light", palette: "opal", image: "assets/opal-headlands.webp", thumbnail: "assets/wallpaper-thumbs/opal-headlands.webp" },
-  { id: "meteor-hero", name: "Meteor Hero", theme: "light", palette: "meteor", image: "assets/meteor-hero.webp", thumbnail: "assets/wallpaper-thumbs/meteor-hero.webp" },
-  { id: "hero-academy", name: "Hero Academy", theme: "light", palette: "academy", image: "assets/hero-academy.webp", thumbnail: "assets/wallpaper-thumbs/hero-academy.webp" },
-  { id: "neon-revival", name: "Neon Revival", theme: "light", palette: "revival", image: "assets/neon-revival.webp", thumbnail: "assets/wallpaper-thumbs/neon-revival.webp" },
-  { id: "grand-voyage", name: "Grand Voyage", theme: "light", palette: "voyage", image: "assets/grand-voyage.webp", thumbnail: "assets/wallpaper-thumbs/grand-voyage.webp" },
-  { id: "ballroom-radiance", name: "Ballroom Radiance", theme: "light", palette: "ballroom", image: "assets/ballroom-radiance.webp", thumbnail: "assets/wallpaper-thumbs/ballroom-radiance.webp" },
-  { id: "frontier-odyssey", name: "Frontier Odyssey", theme: "light", palette: "frontier", image: "assets/frontier-odyssey.webp", thumbnail: "assets/wallpaper-thumbs/frontier-odyssey.webp" },
-  { id: "wandspire-legacy", name: "Wandspire Legacy", theme: "light", palette: "wandspire", image: "assets/wandspire-legacy.webp", thumbnail: "assets/wallpaper-thumbs/wandspire-legacy.webp" },
-  { id: "shieldbound-horizon", name: "Shieldbound Horizon", theme: "light", palette: "shieldbound", image: "assets/shieldbound-horizon.webp", thumbnail: "assets/wallpaper-thumbs/shieldbound-horizon.webp" },
-  { id: "breaker-dawn", name: "Breaker Dawn", theme: "light", palette: "breaker", image: "assets/breaker-dawn.webp", thumbnail: "assets/wallpaper-thumbs/breaker-dawn.webp" },
-  { id: "striker-blue", name: "Striker Blue", theme: "light", palette: "striker", image: "assets/striker-blue.webp", thumbnail: "assets/wallpaper-thumbs/striker-blue.webp" },
-  { id: "emerald-vanguard", name: "Emerald Vanguard", theme: "light", palette: "vanguard", image: "assets/emerald-vanguard.webp", thumbnail: "assets/wallpaper-thumbs/emerald-vanguard.webp" },
-  { id: "hidden-leaf-dawn", name: "Hidden Leaf Dawn", theme: "light", palette: "leafdawn", image: "assets/hidden-leaf-dawn.webp", thumbnail: "assets/wallpaper-thumbs/hidden-leaf-dawn.webp" },
-  { id: "celestial-surge", name: "Celestial Surge", theme: "light", palette: "surge", image: "assets/celestial-surge.webp", thumbnail: "assets/wallpaper-thumbs/celestial-surge.webp" },
-  { id: "psychic-bloom", name: "Psychic Bloom", theme: "light", palette: "psychic", image: "assets/psychic-bloom.webp", thumbnail: "assets/wallpaper-thumbs/psychic-bloom.webp" },
-  { id: "unknown-continent", name: "Unknown Continent", theme: "light", palette: "continent", image: "assets/unknown-continent.webp", thumbnail: "assets/wallpaper-thumbs/unknown-continent.webp" },
-  { id: "sunbreak-archipelago", name: "Sunbreak Archipelago", theme: "light", palette: "sunbreak", image: "assets/sunbreak-archipelago.webp", thumbnail: "assets/wallpaper-thumbs/sunbreak-archipelago.webp" },
-  { id: "northern-oath", name: "Northern Oath", theme: "light", palette: "northern", image: "assets/northern-oath.webp", thumbnail: "assets/wallpaper-thumbs/northern-oath.webp" }
-];
-
 const PAGE_MENU_ICONS = {
   rename: '<svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16v4Z"></path><path d="m13.5 6.5 4 4"></path></svg>',
   share: '<svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="m8.3 10.9 7.4-4.4M8.3 13.1l7.4 4.4"></path></svg>',
@@ -206,6 +141,8 @@ const BOARD_ICONS = {
 };
 
 async function init() {
+  // Older versions kept a full extra copy of the state after every import; it was never read.
+  void extensionApi.storage.local.remove("taboraLastImportBackup").catch(() => {});
   appState = await getTaboraState();
   currentPageId = appState.settings.activePageId;
   await applyAppearance();
@@ -320,10 +257,12 @@ function createBoardCard(board, query) {
   header.innerHTML = `
     <div class="board-title"><svg class="drag-grip" viewBox="0 0 18 18" aria-hidden="true"><circle cx="5" cy="4" r="1"></circle><circle cx="13" cy="4" r="1"></circle><circle cx="5" cy="9" r="1"></circle><circle cx="13" cy="9" r="1"></circle><circle cx="5" cy="14" r="1"></circle><circle cx="13" cy="14" r="1"></circle></svg><span class="board-symbol">${BOARD_ICONS[board.icon] || BOARD_ICONS.folder}</span><h2></h2><span class="board-pin" aria-label="Pinned">${board.pinned ? "Pinned" : ""}</span></div>
     <div class="board-actions">
-      <button class="board-icon-button" data-add-link="${board.id}" title="Add link" aria-label="Add link"><svg class="board-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a4.5 4.5 0 0 0 6.4.1l2-2a4.5 4.5 0 0 0-6.3-6.4l-1.2 1.2"></path><path d="M14 11a4.5 4.5 0 0 0-6.4-.1l-2 2a4.5 4.5 0 0 0 6.3 6.4l1.2-1.2"></path><path class="icon-accent" d="M19 16v5M16.5 18.5h5"></path></svg></button>
-      <button class="board-icon-button" data-board-menu="${board.id}" title="Board options" aria-label="Board options" aria-haspopup="menu" aria-controls="contextMenu" aria-expanded="false"><svg class="board-action-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button>
+      <button class="board-icon-button" data-add-link title="Add link" aria-label="Add link"><svg class="board-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a4.5 4.5 0 0 0 6.4.1l2-2a4.5 4.5 0 0 0-6.3-6.4l-1.2 1.2"></path><path d="M14 11a4.5 4.5 0 0 0-6.4-.1l-2 2a4.5 4.5 0 0 0 6.3 6.4l1.2-1.2"></path><path class="icon-accent" d="M19 16v5M16.5 18.5h5"></path></svg></button>
+      <button class="board-icon-button" data-board-menu title="Board options" aria-label="Board options" aria-haspopup="menu" aria-controls="contextMenu" aria-expanded="false"><svg class="board-action-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></button>
     </div>`;
   setText(header, "h2", board.name);
+  header.querySelector("[data-add-link]").dataset.addLink = board.id;
+  header.querySelector("[data-board-menu]").dataset.boardMenu = board.id;
   card.append(header);
 
   const list = document.createElement("div");
@@ -346,7 +285,8 @@ function createBoardCard(board, query) {
 
   const footer = document.createElement("footer");
   footer.className = "board-footer";
-  footer.innerHTML = `<span>${board.links.length} ${board.links.length === 1 ? "link" : "links"}</span><button data-open-board="${board.id}">Open all</button>`;
+  footer.innerHTML = `<span>${board.links.length} ${board.links.length === 1 ? "link" : "links"}</span><button data-open-board>Open all</button>`;
+  footer.querySelector("[data-open-board]").dataset.openBoard = board.id;
   card.append(footer);
   return card;
 }
@@ -382,7 +322,11 @@ function createLinkRow(board, link) {
 
   const actions = document.createElement("span");
   actions.className = "link-actions";
-  actions.innerHTML = `<button data-share-link="${link.id}" data-board-id="${board.id}" title="Copy link" aria-label="Copy link"><svg class="link-action-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="m8.3 10.9 7.4-4.4M8.3 13.1l7.4 4.4"></path></svg></button><button data-edit-link="${link.id}" data-board-id="${board.id}" title="Edit link" aria-label="Edit link"><svg class="link-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16v4Z"></path><path d="m13.5 6.5 4 4"></path></svg></button><button data-delete-link="${link.id}" data-board-id="${board.id}" title="Delete link" aria-label="Delete link"><svg class="link-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6"></path></svg></button>`;
+  actions.innerHTML = `<button data-share-link title="Copy link" aria-label="Copy link"><svg class="link-action-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="m8.3 10.9 7.4-4.4M8.3 13.1l7.4 4.4"></path></svg></button><button data-edit-link title="Edit link" aria-label="Edit link"><svg class="link-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16v4Z"></path><path d="m13.5 6.5 4 4"></path></svg></button><button data-delete-link title="Delete link" aria-label="Delete link"><svg class="link-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6"></path></svg></button>`;
+  for (const button of actions.querySelectorAll("button")) button.dataset.boardId = board.id;
+  actions.querySelector("[data-share-link]").dataset.shareLink = link.id;
+  actions.querySelector("[data-edit-link]").dataset.editLink = link.id;
+  actions.querySelector("[data-delete-link]").dataset.deleteLink = link.id;
   row.append(anchor, actions);
   return row;
 }
@@ -465,6 +409,7 @@ function showToast(message, tone = "") {
 function importFailureMessage(error) {
   const message = String(error?.message || "");
   if (/quota|storage/i.test(message)) return "Could not import: Tabora storage is full.";
+  if (/too many shared/i.test(message)) return "This shared file is too large to import.";
   if (/unsupported tabora package|missing shared|unknown tabora package/i.test(message)) return "This is not a valid Tabora shared file.";
   return "Could not import this Tabora shared file.";
 }
@@ -838,7 +783,7 @@ async function openBoard(board) {
 async function openSingleLink(link) {
   try {
     const board = appState.boards.find((item) => item.links.some((candidate) => candidate.id === link.id));
-    if (board) await recordLinkOpened(board.id, link.id);
+    if (board && !appState.settings.incognitoMode) await recordLinkOpened(board.id, link.id);
     if (appState.settings.incognitoMode) {
       await extensionApi.windows.create({ url: link.url, incognito: true, focused: true });
     } else if (appState.settings.openLinksInNewTab) {
@@ -1109,8 +1054,7 @@ nodes.boardForm.addEventListener("submit", async (event) => {
     pinned: nodes.boardPinned.checked
   });
   else {
-    const created = await addBoard(activePage().id, nodes.boardName.value, [], boardInsertionPlacement);
-    await customizeBoard(created.result.id, {
+    await addBoard(activePage().id, nodes.boardName.value, [], boardInsertionPlacement, {
       icon: nodes.boardIcon.value,
       color: nodes.boardColor.value,
       size: nodes.boardSize.value,
@@ -1405,15 +1349,14 @@ document.querySelector("#organizeDelete").addEventListener("click", async () => 
       for (const link of board.links) {
         if (!selectedOrganizeLinks.has(`${board.id}:${link.id}`)) continue;
         organizeDeletedLinkIds.add(link.id);
-        state.trash.unshift({
+        state.trash.unshift(createTrashEntry({
           type: "link",
           value: structuredClone(link),
           boardId: board.id,
           boardName: board.name,
           pageId: board.pageId,
-          pageName: page?.name || "Home",
-          deletedAt: Date.now()
-        });
+          pageName: page?.name || "Home"
+        }));
       }
       board.links = board.links.filter((link) => !selectedOrganizeLinks.has(`${board.id}:${link.id}`));
       board.links.forEach((link, index) => { link.order = index; });
@@ -1473,12 +1416,7 @@ document.querySelector("#importTool").addEventListener("click", () => {
   document.querySelector("#commitImport").disabled = false;
   nodes.importDialog.showModal();
 });
-document.querySelector("#trashTool").addEventListener("click", async () => {
-  const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
-  if (appState.trash.some((item) => item.deletedAt && item.deletedAt < cutoff)) {
-    await updateTaboraState((state) => { state.trash = state.trash.filter((item) => !item.deletedAt || item.deletedAt >= cutoff); });
-    await refresh();
-  }
+document.querySelector("#trashTool").addEventListener("click", () => {
   renderTrash();
   nodes.trashDialog.showModal();
 });
@@ -1805,8 +1743,7 @@ function prepareImport(groups, { selectable = false } = {}) {
   selectiveBookmarkImport = selectable;
   selectedImportUrls.clear();
   expandedImportGroups.clear();
-  const existingUrls = new Set(appState.boards.filter((board) => board.pageId === activePage().id).flatMap((board) => board.links.map((link) => normalizeUrl(link.url))));
-  const seen = new Set(existingUrls);
+  const seen = new Set(appState.boards.flatMap((board) => board.links.map((link) => normalizeUrl(link.url))));
   pendingImportSkippedCount = 0;
   pendingImportGroups = groups.map((group) => ({
     name: cleanName(group.name, "Imported Links"),
@@ -2039,7 +1976,6 @@ document.querySelector("#commitImport").addEventListener("click", async () => {
   }
   const groupsToImport = selectedPendingImportGroups();
   if (!groupsToImport.length) { showToast("Select at least one bookmark to import", "warning"); return; }
-  const total = groupsToImport.reduce((sum, group) => sum + group.links.length, 0);
   button.disabled = true;
   button.textContent = "Fetching details...";
   const enriched = await enrichLinksWithMetadata(groupsToImport.flatMap((group) => group.links));
@@ -2048,8 +1984,7 @@ document.querySelector("#commitImport").addEventListener("click", async () => {
     ...group,
     links: group.links.map((link) => enrichedByUrl.get(normalizeUrl(link.url)) || link)
   }));
-  await extensionApi.storage.local.set({ taboraLastImportBackup: structuredClone(appState) });
-  for (const group of enrichedGroups) await addBoard(activePage().id, group.name, group.links);
+  const { result: imported } = await importLinkGroups(activePage().id, enrichedGroups);
   pendingImportGroups = [];
   selectiveBookmarkImport = false;
   selectedImportUrls.clear();
@@ -2058,8 +1993,8 @@ document.querySelector("#commitImport").addEventListener("click", async () => {
   button.disabled = false;
   button.textContent = "Import and fetch details";
   await refresh(enriched.accessGranted
-    ? `${total} links imported${enriched.fetchedCount ? ` · ${enriched.fetchedCount} details fetched` : ""}`
-    : `${total} links imported without fetched details`);
+    ? `${imported.linkCount} links imported${enriched.fetchedCount ? ` · ${enriched.fetchedCount} details fetched` : ""}`
+    : `${imported.linkCount} links imported without fetched details`);
 });
 
 function renderTrash() {
@@ -2074,22 +2009,23 @@ function renderTrash() {
     { type: "board", label: "Boards" }
   ];
   for (const groupDefinition of groups) {
-    const items = appState.trash.map((item, index) => ({ item, index })).filter(({ item }) => item.type === groupDefinition.type);
+    const items = appState.trash.filter((item) => item.type === groupDefinition.type);
     if (!items.length) continue;
     const group = document.createElement("section");
     group.className = "trash-group";
     const heading = document.createElement("h3");
     heading.textContent = groupDefinition.label;
     group.append(heading);
-    for (const { item, index } of items) {
+    for (const item of items) {
       const deletedAt = item.deletedAt || Date.now();
-      const age = Date.now() - deletedAt;
-      const remaining = Math.max(0, 30 - Math.floor(age / (24 * 60 * 60 * 1000)));
+      const remaining = Math.max(0, Math.ceil((deletedAt + TABORA_TRASH_RETENTION_MS - Date.now()) / (24 * 60 * 60 * 1000)));
       const row = document.createElement("div");
       row.className = "trash-row";
       row.innerHTML = `
         <div class="trash-copy"><strong></strong><span class="trash-date"></span><span class="trash-location"></span></div>
-        <div class="trash-row-actions"><button class="trash-restore-button" type="button" data-restore-index="${index}">Restore</button><button class="trash-delete-button" type="button" data-delete-trash-index="${index}">Delete</button></div>`;
+        <div class="trash-row-actions"><button class="trash-restore-button" type="button" data-restore-trash>Restore</button><button class="trash-delete-button" type="button" data-delete-trash>Delete</button></div>`;
+      row.querySelector("[data-restore-trash]").dataset.restoreTrash = item.id;
+      row.querySelector("[data-delete-trash]").dataset.deleteTrash = item.id;
       row.querySelector("strong").textContent = item.type === "link" ? item.value.title : item.value.name;
       row.querySelector(".trash-date").textContent = `Deleted ${new Date(deletedAt).toLocaleDateString()} · ${remaining} days remaining`;
       row.querySelector(".trash-location").textContent = item.type === "link"
@@ -2102,17 +2038,15 @@ function renderTrash() {
 }
 
 nodes.trashList.addEventListener("click", async (event) => {
-  const restoreButton = event.target.closest("[data-restore-index]");
-  const deleteButton = event.target.closest("[data-delete-trash-index]");
+  const restoreButton = event.target.closest("[data-restore-trash]");
+  const deleteButton = event.target.closest("[data-delete-trash]");
   if (restoreButton) {
-    const item = appState.trash[Number(restoreButton.dataset.restoreIndex)];
-    await restoreTrashItem(Number(restoreButton.dataset.restoreIndex));
-    await refresh(item?.type === "link" ? "Bookmark restored" : "Board restored");
+    const { result: item } = await restoreTrashItem(restoreButton.dataset.restoreTrash);
+    await refresh(!item ? "This item is no longer in trash" : item.type === "link" ? "Bookmark restored" : "Board restored");
     renderTrash();
   }
   if (deleteButton) {
-    const index = Number(deleteButton.dataset.deleteTrashIndex);
-    const item = appState.trash[index];
+    const item = appState.trash.find((entry) => entry.id === deleteButton.dataset.deleteTrash);
     if (!item) return;
     const itemName = item.type === "link" ? item.value.title : item.value.name;
     const confirmed = await requestDeleteConfirmation({
@@ -2124,7 +2058,7 @@ nodes.trashList.addEventListener("click", async (event) => {
       submitLabel: "Delete"
     });
     if (!confirmed) return;
-    await deleteTrashItem(index);
+    await deleteTrashItem(item.id);
     await refresh("Item permanently deleted");
     renderTrash();
   }
@@ -2171,19 +2105,23 @@ async function renderAppearancePanel() {
     card.className = "custom-wallpaper-card";
     card.classList.toggle("selected", wallpaper.id === appState.settings.wallpaper);
     card.innerHTML = `
-      <button class="custom-wallpaper-preview" type="button" data-wallpaper="${wallpaper.id}" aria-label="Use uploaded wallpaper"></button>
+      <button class="custom-wallpaper-preview" type="button" data-wallpaper aria-label="Use uploaded wallpaper"></button>
       <strong class="custom-wallpaper-name"></strong>
       <div class="custom-wallpaper-actions">
-        <button class="custom-wallpaper-action" type="button" data-rename-wallpaper="${wallpaper.id}" title="Rename wallpaper" aria-label="Rename wallpaper"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4Z"></path><path d="m13.5 6.5 4 4"></path></svg></button>
-        <button class="custom-wallpaper-action" type="button" data-download-wallpaper="${wallpaper.id}" title="Download wallpaper" aria-label="Download wallpaper"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 18v3h14v-3"></path></svg></button>
-        <button class="custom-wallpaper-action danger" type="button" data-delete-wallpaper="${wallpaper.id}" title="Delete wallpaper" aria-label="Delete wallpaper"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6"></path></svg></button>
+        <button class="custom-wallpaper-action" type="button" data-rename-wallpaper title="Rename wallpaper" aria-label="Rename wallpaper"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4Z"></path><path d="m13.5 6.5 4 4"></path></svg></button>
+        <button class="custom-wallpaper-action" type="button" data-download-wallpaper title="Download wallpaper" aria-label="Download wallpaper"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 18v3h14v-3"></path></svg></button>
+        <button class="custom-wallpaper-action danger" type="button" data-delete-wallpaper title="Delete wallpaper" aria-label="Delete wallpaper"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6"></path></svg></button>
       </div>`;
+    card.querySelector("[data-wallpaper]").dataset.wallpaper = wallpaper.id;
+    card.querySelector("[data-rename-wallpaper]").dataset.renameWallpaper = wallpaper.id;
+    card.querySelector("[data-download-wallpaper]").dataset.downloadWallpaper = wallpaper.id;
+    card.querySelector("[data-delete-wallpaper]").dataset.deleteWallpaper = wallpaper.id;
     card.querySelector(".custom-wallpaper-preview").style.backgroundImage = `url("${url}")`;
     card.querySelector(".custom-wallpaper-name").textContent = wallpaper.name;
     customGrid.append(card);
   }
 
-  const wallpapers = WALLPAPERS.filter((wallpaper) => wallpaper.theme === appState.settings.theme);
+  const wallpapers = TABORA_WALLPAPERS.filter((wallpaper) => wallpaper.theme === appState.settings.theme);
   document.querySelector("#wallpaperCount").textContent = String(wallpapers.length);
   const grid = document.querySelector("#wallpaperGrid");
   grid.innerHTML = "";
@@ -2301,7 +2239,7 @@ document.querySelector(".segmented-control").addEventListener("click", async (ev
   const button = event.target.closest("[data-theme]");
   if (!button) return;
   const nextTheme = button.dataset.theme;
-  const currentIsAvailable = WALLPAPERS.some((wallpaper) => wallpaper.id === appState.settings.wallpaper && wallpaper.theme === nextTheme);
+  const currentIsAvailable = TABORA_WALLPAPERS.some((wallpaper) => wallpaper.id === appState.settings.wallpaper && wallpaper.theme === nextTheme);
   await setSetting("theme", button.dataset.theme);
   if (!currentIsAvailable && !appState.settings.wallpaper.startsWith("custom")) await setSetting("wallpaper", "none");
   await refresh();
@@ -2378,8 +2316,8 @@ function downloadWallpaper(wallpaper) {
 
 async function applyAppearance() {
   const backdrop = document.querySelector("#dashboardBackdrop");
-  const definition = WALLPAPERS.find((wallpaper) => wallpaper.id === appState.settings.wallpaper && wallpaper.theme === appState.settings.theme)
-    || WALLPAPERS.find((wallpaper) => wallpaper.id === "none" && wallpaper.theme === appState.settings.theme);
+  const definition = TABORA_WALLPAPERS.find((wallpaper) => wallpaper.id === appState.settings.wallpaper && wallpaper.theme === appState.settings.theme)
+    || TABORA_WALLPAPERS.find((wallpaper) => wallpaper.id === "none" && wallpaper.theme === appState.settings.theme);
   const isCustomWallpaper = appState.settings.wallpaper.startsWith("custom");
   const appearanceKey = `${appState.settings.theme}:${appState.settings.wallpaper}`;
   if (appearanceKey === appliedAppearanceKey) return;
