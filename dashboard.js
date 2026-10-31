@@ -443,6 +443,9 @@ nodes.deleteConfirmDialog.addEventListener("cancel", (event) => {
   event.preventDefault();
   settleDeleteConfirmation(false);
 });
+nodes.deleteConfirmDialog.addEventListener("close", () => {
+  if (deleteConfirmationResolve) settleDeleteConfirmation(false);
+});
 
 function openPageDialog(page = null) {
   nodes.editingPageId.value = page?.id || "";
@@ -485,6 +488,36 @@ function closeInlineLinkEditor() {
   editor?.remove();
 }
 
+const METADATA_MAX_BYTES = 512 * 1024;
+
+// Title, description, and icon live in <head>; stop reading once it ends instead of downloading the whole page.
+async function readHtmlHead(response, maxBytes = METADATA_MAX_BYTES) {
+  if (!response.body?.getReader) return (await response.text()).slice(0, maxBytes);
+  const charset = /charset=([^;]+)/i.exec(response.headers.get("content-type") || "")?.[1]?.trim();
+  let decoder;
+  try {
+    decoder = new TextDecoder(charset || "utf-8");
+  } catch {
+    decoder = new TextDecoder();
+  }
+  const reader = response.body.getReader();
+  let html = "";
+  let bytes = 0;
+  try {
+    while (bytes < maxBytes) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      const chunk = decoder.decode(value, { stream: true });
+      html += chunk;
+      if (/<\/head\s*>|<body[\s>]/i.test(html.slice(-(chunk.length + 16)))) break;
+    }
+  } finally {
+    void reader.cancel().catch(() => {});
+  }
+  return html.slice(0, maxBytes);
+}
+
 async function fetchLinkMetadata(url) {
   const fallback = { title: getDomain(url), note: "", favIconUrl: "", fetched: false };
   const controller = new AbortController();
@@ -496,7 +529,7 @@ async function fetchLinkMetadata(url) {
     const contentType = response.headers.get("content-type") || "";
     if (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")) return fallback;
 
-    const html = (await response.text()).slice(0, 1500000);
+    const html = await readHtmlHead(response);
     const documentNode = new DOMParser().parseFromString(html, "text/html");
     const title = documentNode.querySelector('meta[property="og:title"]')?.content
       || documentNode.querySelector('meta[name="twitter:title"]')?.content
@@ -772,27 +805,41 @@ function boardMenuItems(board) {
   return items;
 }
 
+const PRIVATE_OPENING_HELP = "Private opening is unavailable. Allow Tabora in private windows from your browser's extension settings.";
+
 async function openBoard(board) {
+  const incognito = appState.settings.incognitoMode;
   try {
-    await openLinks(ordered(board.links), appState.settings.incognitoMode);
-  } catch {
-    showToast("Private opening is unavailable. Enable Tabora in Brave private windows.");
+    await openLinks(ordered(board.links), incognito);
+  } catch (error) {
+    console.error("Could not open board links", error);
+    showToast(incognito ? PRIVATE_OPENING_HELP : "Could not open these links", "warning");
   }
 }
 
+function recordLinkOpenedInBackground(boardId, linkId) {
+  // The worker survives this tab navigating away; fall back to a direct write if it is unreachable.
+  Promise.resolve()
+    .then(() => extensionApi.runtime.sendMessage({ type: "tabora:record-link-opened", boardId, linkId }))
+    .catch(() => recordLinkOpened(boardId, linkId))
+    .catch((error) => console.error("Could not record an opened link", error));
+}
+
 async function openSingleLink(link) {
+  const incognito = appState.settings.incognitoMode;
   try {
     const board = appState.boards.find((item) => item.links.some((candidate) => candidate.id === link.id));
-    if (board && !appState.settings.incognitoMode) await recordLinkOpened(board.id, link.id);
-    if (appState.settings.incognitoMode) {
+    if (board && !incognito) recordLinkOpenedInBackground(board.id, link.id);
+    if (incognito) {
       await extensionApi.windows.create({ url: link.url, incognito: true, focused: true });
     } else if (appState.settings.openLinksInNewTab) {
       await extensionApi.tabs.create({ url: link.url, active: true });
     } else {
       await extensionApi.tabs.update({ url: link.url });
     }
-  } catch {
-    showToast("Could not open a private window. Check Brave extension settings.");
+  } catch (error) {
+    console.error("Could not open link", error);
+    showToast(incognito ? PRIVATE_OPENING_HELP : "Could not open this link", "warning");
   }
 }
 
@@ -1105,7 +1152,7 @@ nodes.fetchLinkDetails.addEventListener("click", async () => {
   if (!url) { setLinkFetchStatus("Enter a valid web address first.", "warning"); nodes.linkUrl.focus(); return; }
 
   nodes.fetchLinkDetails.disabled = true;
-  setLinkFetchStatus("Allow site access in Chrome to fetch link details.");
+  setLinkFetchStatus("Allow site access in your browser to fetch link details.");
   const granted = await requestLinkMetadataAccess();
   if (!granted) {
     setLinkFetchStatus("Site access was not granted. You can still add the link manually.", "warning");
@@ -1127,8 +1174,20 @@ document.querySelectorAll("[data-close-dialog]").forEach((button) => {
   button.addEventListener("click", () => closeDialog(button.dataset.closeDialog));
 });
 
+function isOutsideDialog(dialog, event) {
+  const rect = dialog.getBoundingClientRect();
+  return event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
+}
+
 document.querySelectorAll("dialog").forEach((dialog) => {
-  dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
+  // A text selection dragged out of an input ends with a click on the backdrop; only close when the press started there too.
+  let pressStartedOutside = false;
+  dialog.addEventListener("pointerdown", (event) => { pressStartedOutside = event.target === dialog && isOutsideDialog(dialog, event); });
+  dialog.addEventListener("click", (event) => {
+    const closeIt = pressStartedOutside && event.target === dialog && isOutsideDialog(dialog, event);
+    pressStartedOutside = false;
+    if (closeIt) dialog.close();
+  });
 });
 
 const searchTool = document.querySelector("#searchTool");
@@ -2225,7 +2284,15 @@ function exportPagePackage(page) {
 document.querySelector("#exportTaboraData").addEventListener("click", exportTaboraData);
 document.querySelector("#supportExport").addEventListener("click", exportTaboraData);
 document.querySelector("#resetPreferences").addEventListener("click", async () => {
-  if (!window.confirm("Reset Tabora preferences? Your pages, boards, and links will stay untouched.")) return;
+  const confirmed = await requestDeleteConfirmation({
+    title: "Reset preferences",
+    prompt: "Reset Tabora preferences to their defaults?",
+    warning: "Your pages, boards, and links will stay untouched.",
+    caution: "",
+    compact: true,
+    submitLabel: "Reset"
+  });
+  if (!confirmed) return;
   const defaults = createDefaultState().settings;
   await updateTaboraState((state) => {
     state.settings = { ...defaults, activePageId: activePage().id };

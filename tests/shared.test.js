@@ -34,7 +34,7 @@ const navigator = {
 
 const context = vm.createContext({ chrome, navigator, console, structuredClone, URL, setTimeout, clearTimeout });
 const source = `${fs.readFileSync("shared.js", "utf8")}
-globalThis.tabora = { createDefaultState, getTaboraState, saveTaboraState, addBoard, addLink, updateLink, customizeBoard, deleteBoard, undoLastAction, createTaboraBoardPackage, createTaboraPagePackage, parseTaboraPackage, importTaboraPackage, addPage, ensureQuickSaveBoard, revertOrganizeChanges, parseTaboraBackup, restoreTaboraBackup, importLinkGroups, deleteLink, restoreTrashItem, deleteTrashItem, safeFavIconUrl, normalizeState, TABORA_TRASH_RETENTION_MS };`;
+globalThis.tabora = { createDefaultState, getTaboraState, saveTaboraState, addBoard, addLink, updateLink, customizeBoard, deleteBoard, undoLastAction, createTaboraBoardPackage, createTaboraPagePackage, parseTaboraPackage, importTaboraPackage, addPage, ensureQuickSaveBoard, revertOrganizeChanges, parseTaboraBackup, restoreTaboraBackup, importLinkGroups, deleteLink, restoreTrashItem, deleteTrashItem, safeFavIconUrl, normalizeState, TABORA_TRASH_RETENTION_MS, categorizeLink };`;
 vm.runInContext(source, context);
 
 (async () => {
@@ -190,6 +190,19 @@ vm.runInContext(source, context);
   const huge = api.createTaboraBoardPackage({ name: "Huge", links: [] });
   huge.board.links = Array.from({ length: 2001 }, (_, index) => ({ url: `https://huge.test/${index}` }));
   assert.throws(() => api.parseTaboraPackage(huge), /Too many shared links/);
+
+  // Smart Organize: hostnames decide first, keywords only match whole words.
+  const category = (url, title = "", note = "") => api.categorizeLink({ url, title, note });
+  assert.equal(category("https://www.dropbox.com/home"), "Productivity");
+  assert.equal(category("https://docs.google.com/document/d/1"), "Productivity");
+  assert.equal(category("https://x.com/someone"), "Social");
+  assert.equal(category("https://netflix.com/title/1"), "Videos");
+  assert.equal(category("https://gist.github.com/a"), "Development");
+  assert.equal(category("https://example.com/", "Barcode scanner tips"), "Other");
+  assert.equal(category("https://example.com/", "How to restore a backup"), "Other");
+  assert.equal(category("https://example.com/", "Python API documentation"), "Development");
+  assert.equal(category("https://example.com/", "Weekly news roundup"), "Reading");
+  assert.equal(category("not a url", "Store hours"), "Shopping");
 
   console.log("shared state tests passed");
 })().catch((error) => {

@@ -18,15 +18,6 @@ const featureNodes = {
   roomPassword: document.querySelector("#roomPassword")
 };
 
-const SMART_CATEGORIES = [
-  { name: "Development", match: /github|gitlab|stackoverflow|developer|docs|npm|code|programming|vercel|netlify/i },
-  { name: "Videos", match: /youtube|vimeo|netflix|video|stream|movie/i },
-  { name: "Shopping", match: /amazon|ebay|shop|store|product|cart|etsy/i },
-  { name: "Social", match: /facebook|instagram|linkedin|reddit|twitter|x\.com|threads|discord/i },
-  { name: "Reading", match: /medium|substack|article|blog|news|wikipedia/i },
-  { name: "Productivity", match: /notion|trello|asana|calendar|drive|docs|slack|zoom/i }
-];
-
 function formatFeatureTime(timestamp) {
   const elapsed = Date.now() - timestamp;
   if (elapsed < 60_000) return "Just now";
@@ -95,11 +86,6 @@ function renderRecentActivity() {
       run: async () => extensionApi.tabs.create({ url: item.url })
     }]));
   }
-}
-
-function categorizeLink(link) {
-  const source = `${link.title} ${link.url} ${link.note || ""}`;
-  return SMART_CATEGORIES.find((category) => category.match.test(source))?.name || "Other";
 }
 
 async function checkAllLinks() {

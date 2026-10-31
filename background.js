@@ -1,4 +1,4 @@
-/* global extensionApi, importScripts, normalizeUrl, getTaboraState, findDuplicateLink, ensureQuickSaveBoard, addLink */
+/* global extensionApi, importScripts, normalizeUrl, getTaboraState, findDuplicateLink, ensureQuickSaveBoard, addLink, recordLinkOpened */
 
 var extensionApi = globalThis.browser ?? globalThis.chrome;
 const DEFAULT_ACTION_TITLE = "Tabora";
@@ -59,6 +59,15 @@ async function handleQuickSave(command) {
   const page = added.state.pages.find((item) => item.id === board.pageId);
   await showActionFeedback("✓", `Saved to ${page?.name || "Home"} / ${board.name}`, "#2fa86b");
 }
+
+// Dashboards hand off "recently opened" bookkeeping here so a same-tab navigation cannot cut the write short.
+extensionApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (sender.id !== extensionApi.runtime.id || message?.type !== "tabora:record-link-opened") return;
+  void recordLinkOpened(String(message.boardId), String(message.linkId))
+    .catch((error) => console.error("Tabora could not record an opened link", error));
+  // Acknowledge right away so the sender's promise resolves instead of reporting a closed port.
+  sendResponse({ received: true });
+});
 
 extensionApi.commands.onCommand.addListener((command) => {
   void handleQuickSave(command).catch(async (error) => {

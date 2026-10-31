@@ -957,6 +957,53 @@ async function openLinks(links, incognito = false) {
   }
 }
 
+// Smart Organize: known hostnames win, then whole-word keywords in the title or description.
+const SMART_CATEGORIES = [
+  {
+    name: "Development",
+    domains: ["github.com", "gitlab.com", "bitbucket.org", "stackoverflow.com", "stackexchange.com", "npmjs.com", "pypi.org", "developer.mozilla.org", "vercel.com", "netlify.com", "codepen.io", "dev.to"],
+    keywords: /\b(developer|programming|coding|code|api|sdk|repository|documentation)\b/i
+  },
+  {
+    name: "Videos",
+    domains: ["youtube.com", "youtu.be", "vimeo.com", "netflix.com", "twitch.tv", "primevideo.com", "disneyplus.com"],
+    keywords: /\b(video|videos|streaming|movie|movies|episode)\b/i
+  },
+  {
+    name: "Shopping",
+    domains: ["amazon.com", "ebay.com", "etsy.com", "aliexpress.com", "walmart.com", "bestbuy.com"],
+    keywords: /\b(shop|shopping|store|product|cart|checkout|deals?)\b/i
+  },
+  {
+    name: "Social",
+    domains: ["facebook.com", "instagram.com", "linkedin.com", "reddit.com", "twitter.com", "x.com", "threads.net", "discord.com", "bsky.app", "mastodon.social"],
+    keywords: /\b(social|community|forum)\b/i
+  },
+  {
+    name: "Reading",
+    domains: ["medium.com", "substack.com", "wikipedia.org", "news.ycombinator.com", "nytimes.com", "bbc.com", "theguardian.com"],
+    keywords: /\b(article|blog|news|newsletter|wiki)\b/i
+  },
+  {
+    name: "Productivity",
+    domains: ["notion.so", "trello.com", "asana.com", "slack.com", "zoom.us", "docs.google.com", "drive.google.com", "calendar.google.com", "mail.google.com", "dropbox.com", "figma.com", "airtable.com"],
+    keywords: /\b(calendar|tasks?|todo|meeting|notes|planner)\b/i
+  }
+];
+
+function categorizeLink(link) {
+  let hostname = "";
+  try {
+    hostname = new URL(link.url).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    hostname = "";
+  }
+  const byDomain = SMART_CATEGORIES.find((category) => category.domains.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`)));
+  if (byDomain) return byDomain.name;
+  const text = `${link.title || ""} ${link.note || ""}`;
+  return SMART_CATEGORIES.find((category) => category.keywords.test(text))?.name || "Other";
+}
+
 const boardSearchTextCache = new WeakMap();
 
 function boardMatches(board, query) {
