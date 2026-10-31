@@ -4,6 +4,7 @@ const TABORA_SCHEMA_VERSION = 4;
 const TABORA_BOARD_COLUMNS = 4;
 const TABORA_SHARE_FORMAT = "tabora-share";
 const TABORA_SHARE_VERSION = 1;
+const TABORA_QUICK_SAVE_BOARD_NAME = "Quick Saves";
 var taboraApi = globalThis.browser ?? globalThis.chrome;
 
 function makeId(prefix) {
@@ -25,7 +26,6 @@ function createDefaultState() {
       wallpaper: "digital-ocean",
       privacyMode: false,
       incognitoMode: false,
-      organizeMode: false,
       compactMode: true,
       groupRightTools: false,
       hideExtraBookmarks: false,
@@ -34,7 +34,6 @@ function createDefaultState() {
       showBookmarkDescriptions: true,
       closeTabsAfterSaveAll: false,
       quickSaveDestination: "current-page",
-      language: "en",
       activeMoodId: "",
       onboardingComplete: false
     }
@@ -52,6 +51,8 @@ function normalizeState(value) {
     board.icon = board.icon || "folder";
     board.size = ["small", "medium", "large"].includes(board.size) ? board.size : "medium";
     board.pinned = Boolean(board.pinned || board.starred);
+    if (board.quickSave) board.quickSave = true;
+    else delete board.quickSave;
     board.links = Array.isArray(board.links) ? board.links : [];
     for (const link of board.links) {
       link.health = link.health && typeof link.health === "object" ? link.health : null;
@@ -83,6 +84,9 @@ function normalizeState(value) {
   state.moods = Array.isArray(state.moods) ? state.moods : [];
   state.vaults = Array.isArray(state.vaults) ? state.vaults : [];
   state.settings = { ...fallback.settings, ...(state.settings || {}) };
+  // Organize mode is per-tab and the language picker was never wired up.
+  delete state.settings.organizeMode;
+  delete state.settings.language;
   if (!state.pages.some((page) => page.id === state.settings.activePageId)) {
     state.settings.activePageId = state.pages[0].id;
   }
@@ -164,7 +168,6 @@ async function saveTaboraState(state) {
 
 async function saveUndoSnapshot(state, label = "Last change") {
   const snapshot = structuredClone(state);
-  snapshot.settings.organizeMode = false;
   await taboraApi.storage.local.set({ [TABORA_UNDO_KEY]: { label, state: snapshot, savedAt: Date.now() } });
 }
 
@@ -349,6 +352,66 @@ async function importTaboraPackage(value, destinationPageId) {
   }, { undoLabel: shared.type === "page" ? "Shared page import" : "Shared board import" });
 }
 
+const TABORA_ID_PATTERN = /^[\w.-]{1,120}$/;
+
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function parseTaboraBackup(value) {
+  if (!isRecord(value) || !Array.isArray(value.pages) || !Array.isArray(value.boards)) {
+    throw new Error("Unsupported Tabora backup");
+  }
+  const backup = structuredClone(value);
+  backup.pages = backup.pages
+    .filter((page) => isRecord(page) && TABORA_ID_PATTERN.test(String(page.id)))
+    .map((page, index) => ({
+      id: String(page.id),
+      name: cleanName(page.name, `Page ${index + 1}`),
+      order: Number.isFinite(page.order) ? page.order : index,
+      protected: page.id === "home"
+    }));
+  if (!backup.pages.some((page) => page.id === "home")) backup.pages.unshift(createDefaultState().pages[0]);
+  const pageIds = new Set(backup.pages.map((page) => page.id));
+  backup.boards = backup.boards
+    .filter((board) => isRecord(board) && TABORA_ID_PATTERN.test(String(board.id)) && pageIds.has(board.pageId))
+    .map((board) => ({
+      ...board,
+      id: String(board.id),
+      name: cleanName(board.name, "Restored Board"),
+      links: (Array.isArray(board.links) ? board.links : [])
+        .filter((link) => isRecord(link) && normalizeUrl(link.url))
+        .map((link, index) => ({
+          ...link,
+          id: TABORA_ID_PATTERN.test(String(link.id)) ? String(link.id) : makeId("link"),
+          title: cleanName(link.title, getDomain(normalizeUrl(link.url))),
+          url: normalizeUrl(link.url),
+          favIconUrl: String(link.favIconUrl || ""),
+          note: String(link.note || "").trim().slice(0, 2000),
+          order: Number.isFinite(link.order) ? link.order : index
+        }))
+    }));
+  for (const key of ["trash", "recentlyOpened", "moods", "vaults"]) {
+    backup[key] = Array.isArray(backup[key]) ? backup[key].filter(isRecord) : [];
+  }
+  backup.settings = isRecord(backup.settings) ? backup.settings : {};
+  return normalizeState(backup);
+}
+
+async function restoreTaboraBackup(value) {
+  const backup = parseTaboraBackup(value);
+  return updateTaboraState((state) => {
+    for (const key of ["pages", "boards", "trash", "recentlyOpened", "moods", "vaults", "settings"]) {
+      state[key] = backup[key];
+    }
+    return {
+      pageCount: backup.pages.length,
+      boardCount: backup.boards.length,
+      linkCount: backup.boards.reduce((count, board) => count + board.links.length, 0)
+    };
+  }, { undoLabel: "Backup restore" });
+}
+
 async function addPage(name) {
   return updateTaboraState((state) => {
     const page = {
@@ -386,43 +449,58 @@ async function deletePage(pageId) {
 }
 
 async function addBoard(pageId, name, links = [], placement = null) {
+  return updateTaboraState((state) => createBoardInState(state, pageId, name, links, placement));
+}
+
+async function ensureQuickSaveBoard(pageId) {
   return updateTaboraState((state) => {
     const page = state.pages.find((item) => item.id === pageId) || state.pages[0];
-    const pageBoards = ordered(state.boards.filter((item) => item.pageId === page.id));
-    const isFirstBoard = pageBoards.length === 0;
-    const requestedColumn = isFirstBoard ? 0 : typeof placement === "object" && placement !== null ? placement.column : pageBoards.length % TABORA_BOARD_COLUMNS;
-    const column = Math.max(0, Math.min(TABORA_BOARD_COLUMNS - 1, Number(requestedColumn) || 0));
-    const columnBoards = pageBoards.filter((item) => item.column === column).sort((a, b) => (a.columnOrder || 0) - (b.columnOrder || 0));
-    const requestedOrder = isFirstBoard ? 0 : typeof placement === "object" && placement !== null ? placement.order : columnBoards.length;
-    const columnOrder = Math.max(0, Math.min(Number(requestedOrder) || 0, columnBoards.length));
-    for (const item of columnBoards) {
-      if ((item.columnOrder || 0) >= columnOrder) item.columnOrder += 1;
-    }
-    const board = {
-      id: makeId("board"),
-      pageId: page.id,
-      name: cleanName(name, "New Board"),
-      order: pageBoards.length,
-      column,
-      columnOrder,
-      starred: false,
-      pinned: false,
-      color: "green",
-      icon: "folder",
-      size: "medium",
-      createdAt: Date.now(),
-      links: links.map((link, index) => ({
-        id: link.id || makeId("link"),
-        title: cleanName(link.title, getDomain(link.url)),
-        url: normalizeUrl(link.url),
-        favIconUrl: link.favIconUrl || "",
-        note: link.note || "",
-        order: index
-      })).filter((link) => link.url)
-    };
-    state.boards.push(board);
+    const pageBoards = state.boards.filter((item) => item.pageId === page.id);
+    // Older versions found this board by name, so adopt a legacy "Quick Saves" board once.
+    const board = pageBoards.find((item) => item.quickSave)
+      || pageBoards.find((item) => item.name === TABORA_QUICK_SAVE_BOARD_NAME)
+      || createBoardInState(state, page.id, TABORA_QUICK_SAVE_BOARD_NAME);
+    board.quickSave = true;
     return board;
   });
+}
+
+function createBoardInState(state, pageId, name, links = [], placement = null) {
+  const page = state.pages.find((item) => item.id === pageId) || state.pages[0];
+  const pageBoards = ordered(state.boards.filter((item) => item.pageId === page.id));
+  const isFirstBoard = pageBoards.length === 0;
+  const requestedColumn = isFirstBoard ? 0 : typeof placement === "object" && placement !== null ? placement.column : pageBoards.length % TABORA_BOARD_COLUMNS;
+  const column = Math.max(0, Math.min(TABORA_BOARD_COLUMNS - 1, Number(requestedColumn) || 0));
+  const columnBoards = pageBoards.filter((item) => item.column === column).sort((a, b) => (a.columnOrder || 0) - (b.columnOrder || 0));
+  const requestedOrder = isFirstBoard ? 0 : typeof placement === "object" && placement !== null ? placement.order : columnBoards.length;
+  const columnOrder = Math.max(0, Math.min(Number(requestedOrder) || 0, columnBoards.length));
+  for (const item of columnBoards) {
+    if ((item.columnOrder || 0) >= columnOrder) item.columnOrder += 1;
+  }
+  const board = {
+    id: makeId("board"),
+    pageId: page.id,
+    name: cleanName(name, "New Board"),
+    order: pageBoards.length,
+    column,
+    columnOrder,
+    starred: false,
+    pinned: false,
+    color: "green",
+    icon: "folder",
+    size: "medium",
+    createdAt: Date.now(),
+    links: links.map((link, index) => ({
+      id: link.id || makeId("link"),
+      title: cleanName(link.title, getDomain(link.url)),
+      url: normalizeUrl(link.url),
+      favIconUrl: link.favIconUrl || "",
+      note: link.note || "",
+      order: index
+    })).filter((link) => link.url)
+  };
+  state.boards.push(board);
+  return board;
 }
 
 async function renameBoard(boardId, name) {
@@ -668,6 +746,36 @@ async function moveLink(linkId, fromBoardId, toBoardId, beforeLinkId = null) {
   }, { undoLabel: "Bookmark move" });
 }
 
+// Undo one organize session without discarding changes saved elsewhere meanwhile.
+function revertOrganizeChanges(state, snapshot, deletedLinkIds = new Set()) {
+  const currentBoards = new Map(state.boards.map((board) => [board.id, board]));
+  const currentLinks = new Map(state.boards.flatMap((board) => board.links.map((link) => [link.id, link])));
+  const trashedLinks = new Map(state.trash
+    .filter((entry) => entry.type === "link" && deletedLinkIds.has(entry.value?.id))
+    .map((entry) => [entry.value.id, entry.value]));
+  const placedLinkIds = new Set();
+  const restoredBoardLinks = new Map();
+  for (const snapshotBoard of snapshot.boards) {
+    const board = currentBoards.get(snapshotBoard.id);
+    if (!board) continue;
+    board.column = snapshotBoard.column;
+    board.columnOrder = snapshotBoard.columnOrder;
+    board.order = snapshotBoard.order;
+    const links = ordered(snapshotBoard.links)
+      .map((link) => currentLinks.get(link.id) || trashedLinks.get(link.id))
+      .filter(Boolean);
+    for (const link of links) placedLinkIds.add(link.id);
+    restoredBoardLinks.set(board.id, links);
+  }
+  for (const board of state.boards) {
+    const otherLinks = ordered(board.links).filter((link) => !placedLinkIds.has(link.id));
+    board.links = [...(restoredBoardLinks.get(board.id) || []), ...otherLinks]
+      .map((link, index) => ({ ...link, order: index }));
+  }
+  state.trash = state.trash.filter((entry) => !(entry.type === "link" && placedLinkIds.has(entry.value?.id) && deletedLinkIds.has(entry.value.id)));
+  return state;
+}
+
 async function setSetting(key, value) {
   return updateTaboraState((state) => {
     state.settings[key] = value;
@@ -745,4 +853,86 @@ function faviconNode(link) {
 function setText(parent, selector, value) {
   const node = parent.querySelector(selector);
   if (node) node.textContent = value;
+}
+
+// Custom wallpapers live in IndexedDB so the dashboard and the popup can both read them.
+function openWallpaperDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("tabora-assets", 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("wallpapers");
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function saveWallpaperBlob(blob) {
+  const database = await openWallpaperDatabase();
+  const id = `custom-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  await new Promise((resolve, reject) => {
+    const transaction = database.transaction("wallpapers", "readwrite");
+    transaction.objectStore("wallpapers").put({ blob, name: blob.name || "Uploaded wallpaper", createdAt: Date.now() }, id);
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+  });
+  database.close();
+  return id;
+}
+
+async function getWallpaperBlob(id = "custom") {
+  const database = await openWallpaperDatabase();
+  const value = await new Promise((resolve, reject) => {
+    const request = database.transaction("wallpapers").objectStore("wallpapers").get(id);
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
+  });
+  database.close();
+  return value instanceof Blob ? value : value?.blob || null;
+}
+
+async function getCustomWallpapers() {
+  const database = await openWallpaperDatabase();
+  const wallpapers = await new Promise((resolve, reject) => {
+    const store = database.transaction("wallpapers").objectStore("wallpapers");
+    const request = store.openCursor();
+    const result = [];
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) { resolve(result); return; }
+      const value = cursor.value;
+      const blob = value instanceof Blob ? value : value?.blob;
+      if (blob) result.push({ id: String(cursor.key), blob, name: value?.name || blob.name || "Uploaded wallpaper", createdAt: value?.createdAt || 0 });
+      cursor.continue();
+    };
+    request.onerror = () => reject(request.error);
+  });
+  database.close();
+  return wallpapers.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+async function deleteCustomWallpaper(id) {
+  const database = await openWallpaperDatabase();
+  await new Promise((resolve, reject) => {
+    const transaction = database.transaction("wallpapers", "readwrite");
+    transaction.objectStore("wallpapers").delete(id);
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+  });
+  database.close();
+}
+
+async function renameCustomWallpaper(id, name) {
+  const database = await openWallpaperDatabase();
+  await new Promise((resolve, reject) => {
+    const transaction = database.transaction("wallpapers", "readwrite");
+    const store = transaction.objectStore("wallpapers");
+    const request = store.get(id);
+    request.onsuccess = () => {
+      const value = request.result;
+      const blob = value instanceof Blob ? value : value?.blob;
+      if (blob) store.put({ blob, name, createdAt: value?.createdAt || Date.now() }, id);
+    };
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+  });
+  database.close();
 }

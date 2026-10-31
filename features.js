@@ -158,8 +158,10 @@ async function smartOrganizeCurrentPage() {
   await updateTaboraState((state) => {
     const boards = state.boards.filter((board) => board.pageId === page.id);
     const categorized = boards.flatMap((board) => board.links.map((link) => ({ link, category: categorizeLink(link) })));
+    // Use categories from the fresh state so links saved while the dialog was open are never dropped.
+    const categories = [...new Set(categorized.map((item) => item.category))];
     for (const board of boards) board.links = [];
-    for (const [category] of counts) {
+    for (const category of categories) {
       let target = boards.find((board) => board.name.toLowerCase() === category.toLowerCase());
       if (!target) {
         const column = state.boards.filter((board) => board.pageId === page.id).length % TABORA_BOARD_COLUMNS;
@@ -185,16 +187,18 @@ function renderMoods() {
 }
 
 async function applyMood(moodId) {
-  await updateTaboraState((state) => {
+  const { result: pageId } = await updateTaboraState((state) => {
     const mood = state.moods.find((item) => item.id === moodId);
-    if (!mood) return;
+    if (!mood) return null;
     state.settings.activeMoodId = mood.id;
     state.settings.activePageId = state.pages.some((page) => page.id === mood.pageId) ? mood.pageId : "home";
     state.settings.theme = mood.theme;
     state.settings.wallpaper = mood.wallpaper;
     state.settings.privacyMode = mood.privacyMode;
     state.settings.incognitoMode = mood.incognitoMode;
+    return state.settings.activePageId;
   }, { undoLabel: "Mood change" });
+  if (pageId) setCurrentPage(pageId);
   await refresh("Mood space applied");
   await applyAppearance();
   await renderFeatureCenter();
@@ -291,6 +295,7 @@ function renderVaults() {
           state.vaults = state.vaults.filter((item) => item.id !== vault.id);
           state.settings.activePageId = payload.page.id;
         });
+        setCurrentPage(payload.page.id);
         await refresh("Private page unlocked");
         await renderFeatureCenter();
       } catch {
@@ -319,7 +324,7 @@ async function joinRoomPackage() {
     const encrypted = JSON.parse(atob(encoded));
     const payload = await decryptWithPassword(encrypted, password);
     if (payload.expiresAt < Date.now()) throw new Error("Expired package");
-    await updateTaboraState((state) => {
+    const { result: roomPageId } = await updateTaboraState((state) => {
       const pageId = makeId("page");
       state.pages.push({ id: pageId, name: cleanName(`${payload.page?.name || "Shared"} Room`, "Shared Room"), protected: false, order: state.pages.length });
       for (const [index, board] of (Array.isArray(payload.boards) ? payload.boards : []).slice(0, 100).entries()) {
@@ -348,7 +353,9 @@ async function joinRoomPackage() {
         });
       }
       state.settings.activePageId = pageId;
+      return pageId;
     }, { undoLabel: "Room import" });
+    setCurrentPage(roomPageId);
     featureNodes.roomCode.value = "";
     featureNodes.dialog.close();
     await refresh("Room joined");
@@ -400,7 +407,7 @@ document.querySelector("#moodForm").addEventListener("submit", async (event) => 
   const name = document.querySelector("#moodName").value.trim();
   if (!name) return;
   await updateTaboraState((state) => {
-    state.moods.push({ id: makeId("mood"), name: cleanName(name, "New Mood"), pageId: state.settings.activePageId, theme: state.settings.theme, wallpaper: state.settings.wallpaper, privacyMode: state.settings.privacyMode, incognitoMode: state.settings.incognitoMode, createdAt: Date.now() });
+    state.moods.push({ id: makeId("mood"), name: cleanName(name, "New Mood"), pageId: activePage().id, theme: state.settings.theme, wallpaper: state.settings.wallpaper, privacyMode: state.settings.privacyMode, incognitoMode: state.settings.incognitoMode, createdAt: Date.now() });
   });
   document.querySelector("#moodName").value = "";
   await renderFeatureCenter();
@@ -422,6 +429,7 @@ document.querySelector("#vaultForm").addEventListener("submit", async (event) =>
     state.boards = state.boards.filter((board) => board.pageId !== pageId);
     state.settings.activePageId = "home";
   });
+  if (pageId === currentPageId) setCurrentPage("home");
   document.querySelector("#vaultPassword").value = "";
   await refresh("Page locked in private vault");
   await renderFeatureCenter();

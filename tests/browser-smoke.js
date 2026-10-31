@@ -169,8 +169,8 @@ async function waitForTargets() {
       await new Promise((resolve) => setTimeout(resolve, 140));
       return toastText();
     };
-    const pageResult = await chooseMenuItem(document.querySelector('[data-page-options="home"]'), "Share Page");
-    const boardResult = await chooseMenuItem(document.querySelector('[data-board-menu="' + board.id + '"]'), "Share / copy links");
+    const pageResult = await chooseMenuItem(document.querySelector('[data-page-options="home"]'), "Copy page links");
+    const boardResult = await chooseMenuItem(document.querySelector('[data-board-menu="' + board.id + '"]'), "Copy board links");
     document.querySelector('[data-share-link][data-board-id="' + board.id + '"]').click();
     await new Promise((resolve) => setTimeout(resolve, 140));
     return { pageResult, boardResult, linkResult: toastText(), shareButton: Boolean(document.querySelector("[data-share-link]")) };

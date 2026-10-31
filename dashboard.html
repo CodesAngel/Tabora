@@ -120,7 +120,7 @@
           <button class="import-option" type="button" data-import="bookmarks"><svg class="option-svg-icon icon-amber" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5A2.5 2.5 0 0 1 8.5 2H19v17H8.5A2.5 2.5 0 0 0 6 21.5v-17Z"></path><path d="M6 19V4.5A2.5 2.5 0 0 0 3.5 2H3v17h3ZM13 6v7l2-1.4 2 1.4V6"></path></svg><strong>Browser bookmarks</strong><small>Copy folders and bookmarks from Brave</small></button>
           <button class="import-option" type="button" data-import="window"><svg class="option-svg-icon icon-blue" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 8h18M7 6h.01M10 6h.01"></path></svg><strong>Current window</strong><small>Turn every open tab into one board</small></button>
           <button class="import-option" type="button" data-import="text"><svg class="option-svg-icon icon-green" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 4V2h6v2M8 9h8M8 13h8M8 17h5"></path></svg><strong>Paste links</strong><small>One URL per line, optionally title | URL</small></button>
-          <label class="import-option file-option"><svg class="option-svg-icon icon-purple" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l4 4v16H6V2Z"></path><path d="M14 2v5h5M9 12h6M9 16h6"></path></svg><strong>Upload a file</strong><small>Tabora, HTML, CSV, or text</small><input id="importFile" type="file" accept=".tabora,.html,.htm,.csv,.txt"></label>
+          <label class="import-option file-option"><svg class="option-svg-icon icon-purple" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l4 4v16H6V2Z"></path><path d="M14 2v5h5M9 12h6M9 16h6"></path></svg><strong>Upload a file</strong><small>Tabora, backup, HTML, CSV, or text</small><input id="importFile" type="file" accept=".tabora,.json,.html,.htm,.csv,.txt"></label>
         </div>
         <div id="textImportPanel" class="text-import-panel" hidden>
           <label for="importText">Links to import</label>
@@ -174,7 +174,6 @@
           <nav aria-label="Settings sections">
             <button class="settings-nav-button active" type="button" data-settings-view="general"><svg class="settings-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"></path></svg>General</button>
             <button class="settings-nav-button" type="button" data-settings-view="account"><svg class="settings-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M5 21a7 7 0 0 1 14 0"></path></svg>Account</button>
-            <button class="settings-nav-button" type="button" data-settings-view="language"><svg class="settings-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg>Language</button>
             <button class="settings-nav-button" type="button" data-settings-view="support"><svg class="settings-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle><path d="m5.6 5.6 4.3 4.3M14.1 14.1l4.3 4.3M18.4 5.6l-4.3 4.3M9.9 14.1l-4.3 4.3"></path></svg>Support</button>
           </nav>
         </aside>
@@ -200,9 +199,6 @@
           </section>
           <section class="settings-view" data-view="account">
             <h2>Account</h2><div class="settings-info"><strong>Your Tabora is local</strong><p>No account is required. Pages, boards, links, and preferences stay in this browser profile.</p><button id="exportTaboraData" class="secondary-button" type="button">Export Tabora data</button></div>
-          </section>
-          <section class="settings-view" data-view="language">
-            <h2>Language</h2><div class="settings-info"><label for="languageSelect">Interface language</label><select id="languageSelect"><option value="en">English</option></select><p>More interface languages can be added without changing your saved boards.</p></div>
           </section>
           <section class="settings-view" data-view="support">
             <h2>Support</h2><div class="settings-info"><strong>Tabora V2</strong><p>Your data can be exported as JSON for backup or troubleshooting.</p><div class="support-actions"><button id="supportExport" class="secondary-button" type="button">Export backup</button><button id="resetPreferences" class="danger-button" type="button">Reset preferences</button></div></div>

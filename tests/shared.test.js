@@ -18,7 +18,7 @@ const chrome = {
 
 const context = vm.createContext({ chrome, console, structuredClone, URL, setTimeout, clearTimeout });
 const source = `${fs.readFileSync("shared.js", "utf8")}
-globalThis.tabora = { createDefaultState, getTaboraState, saveTaboraState, addBoard, addLink, updateLink, customizeBoard, deleteBoard, undoLastAction, createTaboraBoardPackage, createTaboraPagePackage, parseTaboraPackage, importTaboraPackage };`;
+globalThis.tabora = { createDefaultState, getTaboraState, saveTaboraState, addBoard, addLink, updateLink, customizeBoard, deleteBoard, undoLastAction, createTaboraBoardPackage, createTaboraPagePackage, parseTaboraPackage, importTaboraPackage, addPage, ensureQuickSaveBoard, revertOrganizeChanges, parseTaboraBackup, restoreTaboraBackup };`;
 vm.runInContext(source, context);
 
 (async () => {
@@ -76,6 +76,48 @@ vm.runInContext(source, context);
   state = await api.getTaboraState();
   assert.equal(state.boards.length, 3);
   assert.equal(state.trash.length, 0);
+
+  // Quick Save adopts a legacy board by name, then keeps finding it after a rename.
+  const legacy = await api.addBoard("home", "Quick Saves");
+  const adopted = await api.ensureQuickSaveBoard("home");
+  assert.equal(adopted.result.id, legacy.result.id);
+  await api.customizeBoard(legacy.result.id, { name: "Inbox" });
+  const renamed = await api.ensureQuickSaveBoard("home");
+  assert.equal(renamed.result.id, legacy.result.id);
+  assert.equal(renamed.result.name, "Inbox");
+
+  // Cancelling organize mode reverts its moves and deletions but keeps links saved elsewhere.
+  state = await api.getTaboraState();
+  const [boardA, boardB] = state.boards;
+  const snapshot = structuredClone(state);
+  const movedLink = boardA.links[0];
+  boardA.links = [];
+  boardB.links.push(movedLink);
+  const deletedLink = boardB.links[0];
+  boardB.links = boardB.links.filter((link) => link.id !== deletedLink.id);
+  state.trash.unshift({ type: "link", value: structuredClone(deletedLink), deletedAt: Date.now() });
+  boardA.links.push({ id: "link-external", title: "Saved elsewhere", url: "https://example.org/", order: 0 });
+  api.revertOrganizeChanges(state, snapshot, new Set([deletedLink.id]));
+  assert.deepEqual([...boardA.links.map((link) => link.id)], [movedLink.id, "link-external"]);
+  assert.deepEqual([...boardB.links.map((link) => link.id)], [...snapshot.boards[1].links.map((link) => link.id)]);
+  assert.equal(state.trash.some((entry) => entry.value?.id === deletedLink.id), false);
+
+  // Backups round-trip, drop unsafe links, and strip settings that are no longer stored.
+  const exported = structuredClone(await api.getTaboraState());
+  exported.settings.organizeMode = true;
+  exported.settings.language = "en";
+  exported.boards[0].links.push({ id: "bad", title: "Bad", url: "javascript:alert(1)" });
+  await api.addPage("Temporary");
+  const restored = await api.restoreTaboraBackup(exported);
+  state = await api.getTaboraState();
+  assert.equal(restored.result.boardCount, exported.boards.length);
+  assert.equal(state.pages.some((page) => page.name === "Temporary"), false);
+  assert.equal(state.boards[0].links.some((link) => link.id === "bad"), false);
+  assert.equal("organizeMode" in state.settings, false);
+  assert.equal("language" in state.settings, false);
+  assert.throws(() => api.parseTaboraBackup({ boards: [] }), /Unsupported Tabora backup/);
+  assert.equal(await api.undoLastAction(), "Backup restore");
+  assert.ok((await api.getTaboraState()).pages.some((page) => page.name === "Temporary"));
 
   console.log("shared state tests passed");
 })().catch((error) => {

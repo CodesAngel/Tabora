@@ -51,6 +51,10 @@ const nodes = {
 };
 
 let appState = createDefaultState();
+// Each new tab keeps its own page and organize session; storage only remembers the last page used.
+let currentPageId = "";
+let organizeMode = false;
+const organizeDeletedLinkIds = new Set();
 let draggedItem = null;
 let customWallpaperUrl = "";
 const wallpaperPreviewUrls = new Map();
@@ -203,12 +207,18 @@ const BOARD_ICONS = {
 
 async function init() {
   appState = await getTaboraState();
+  currentPageId = appState.settings.activePageId;
   await applyAppearance();
   render();
 }
 
 function activePage() {
-  return appState.pages.find((page) => page.id === appState.settings.activePageId) || appState.pages[0];
+  return appState.pages.find((page) => page.id === currentPageId) || appState.pages[0];
+}
+
+function setCurrentPage(pageId) {
+  if (pageId) currentPageId = pageId;
+  boardInsertionPlacement = { column: 0, order: 0 };
 }
 
 function activeBoards() {
@@ -270,7 +280,7 @@ function renderBoards() {
       .filter((board) => board.column === columnIndex)
       .sort((a, b) => Number(b.pinned) - Number(a.pinned) || (a.columnOrder || 0) - (b.columnOrder || 0))
       .map((board) => {
-        const signature = JSON.stringify([board, appState.settings.showBookmarkDescriptions, appState.settings.organizeMode]);
+        const signature = JSON.stringify([board, appState.settings.showBookmarkDescriptions, organizeMode]);
         const cached = boardCardCache.get(board.id);
         if (cached?.signature === signature) return cached.card;
         const card = createBoardCard(board, "");
@@ -303,7 +313,7 @@ function createBoardCard(board, query) {
   card.dataset.boardId = board.id;
   card.dataset.column = String(board.column);
   card.dataset.columnOrder = String(board.columnOrder);
-  card.draggable = appState.settings.organizeMode;
+  card.draggable = organizeMode;
 
   const header = document.createElement("header");
   header.className = "board-header";
@@ -346,7 +356,7 @@ function createLinkRow(board, link) {
   row.className = "bookmark-row";
   row.dataset.linkId = link.id;
   row.dataset.boardId = board.id;
-  row.draggable = appState.settings.organizeMode;
+  row.draggable = organizeMode;
   row.classList.toggle("selected", selectedOrganizeLinks.has(`${board.id}:${link.id}`));
 
   const anchor = document.createElement("a");
@@ -379,7 +389,7 @@ function createLinkRow(board, link) {
 
 function renderToolState() {
   document.body.classList.toggle("privacy-mode", appState.settings.privacyMode);
-  document.body.classList.toggle("organize-mode", appState.settings.organizeMode);
+  document.body.classList.toggle("organize-mode", organizeMode);
   document.body.classList.toggle("light-theme", appState.settings.theme === "light");
   document.body.classList.toggle("compact-mode", appState.settings.compactMode);
   document.body.classList.toggle("hide-extra-bookmarks", appState.settings.hideExtraBookmarks);
@@ -393,8 +403,8 @@ function renderToolState() {
   privacyTool.title = appState.settings.privacyMode ? "Privacy Blur ON - Click to disable" : "Privacy Blur OFF - Click to enable";
   privacyTool.setAttribute("aria-label", privacyTool.title);
   const organizeTool = document.querySelector("#organizeTool");
-  organizeTool.classList.toggle("active", appState.settings.organizeMode);
-  organizeTool.innerHTML = appState.settings.organizeMode ? ORGANIZE_DONE_ICON : ORGANIZE_TOOL_ICON;
+  organizeTool.classList.toggle("active", organizeMode);
+  organizeTool.innerHTML = organizeMode ? ORGANIZE_DONE_ICON : ORGANIZE_TOOL_ICON;
   document.querySelector("#incognitoTool").classList.toggle("active", appState.settings.incognitoMode);
   renderOrganizeToolbar();
 }
@@ -402,7 +412,7 @@ function renderToolState() {
 function renderOrganizeToolbar() {
   const toolbar = document.querySelector("#organizeToolbar");
   const count = selectedOrganizeLinks.size;
-  toolbar.hidden = !appState.settings.organizeMode;
+  toolbar.hidden = !organizeMode;
   document.querySelector("#organizeSelectionCount").textContent = `${count} selected`;
   document.querySelector("#organizeDelete").disabled = count === 0;
 }
@@ -549,11 +559,16 @@ async function fetchLinkMetadata(url) {
     const note = documentNode.querySelector('meta[property="og:description"]')?.content
       || documentNode.querySelector('meta[name="description"]')?.content
       || "";
-    const iconHref = documentNode.querySelector('link[rel~="icon"]')?.href || "";
+    // Read the raw attribute: `.href` on a DOMParser document resolves against the extension page URL.
+    const iconHref = documentNode.querySelector('link[rel~="icon"]')?.getAttribute("href")?.trim() || "";
     let favIconUrl = "";
     if (iconHref) {
-      const iconUrl = new URL(iconHref, response.url || url);
-      if (["http:", "https:"].includes(iconUrl.protocol)) favIconUrl = iconUrl.href;
+      try {
+        const iconUrl = new URL(iconHref, response.url || url);
+        if (["http:", "https:"].includes(iconUrl.protocol)) favIconUrl = iconUrl.href;
+      } catch {
+        favIconUrl = "";
+      }
     }
 
     return {
@@ -916,7 +931,7 @@ function pageMenuItems(page) {
       });
       if (!confirmed) return;
       await deletePage(page.id);
-      boardInsertionPlacement = { column: 0, order: 0 };
+      if (page.id === currentPageId) setCurrentPage("home");
       await refresh("Page deleted");
     } }
   ];
@@ -967,9 +982,9 @@ nodes.pageTabs.addEventListener("click", async (event) => {
   }
   const button = event.target.closest("[data-page-id]");
   if (!button) return;
-  boardInsertionPlacement = { column: 0, order: 0 };
+  setCurrentPage(button.dataset.pageId);
+  render();
   await setSetting("activePageId", button.dataset.pageId);
-  await refresh();
 });
 
 nodes.pageTabs.addEventListener("contextmenu", (event) => {
@@ -989,7 +1004,7 @@ nodes.pageForm.addEventListener("submit", async (event) => {
   if (!nodes.pageName.value.trim()) return;
   const editingPageId = nodes.editingPageId.value;
   if (editingPageId) await renamePage(editingPageId, nodes.pageName.value);
-  else await addPage(nodes.pageName.value);
+  else setCurrentPage((await addPage(nodes.pageName.value)).result.id);
   nodes.pageName.value = "";
   nodes.editingPageId.value = "";
   nodes.pageDialog.close();
@@ -1031,7 +1046,7 @@ nodes.boardGrid.addEventListener("click", async (event) => {
   const editLinkButton = event.target.closest("[data-edit-link]");
   const deleteLinkButton = event.target.closest("[data-delete-link]");
 
-  if (appState.settings.organizeMode && linkAnchor) {
+  if (organizeMode && linkAnchor) {
     event.preventDefault();
     const key = `${linkAnchor.dataset.boardId}:${linkAnchor.dataset.openLink}`;
     if (selectedOrganizeLinks.has(key)) selectedOrganizeLinks.delete(key);
@@ -1340,38 +1355,37 @@ document.querySelector("#incognitoTool").addEventListener("click", async () => {
   await refresh(appState.settings.incognitoMode ? "Private opening disabled" : "Private opening enabled");
 });
 
-async function finishOrganizeMode() {
+function endOrganizeSession() {
+  organizeMode = false;
   organizeSnapshot = null;
   organizeDropTarget = null;
+  organizeDeletedLinkIds.clear();
   selectedOrganizeLinks.clear();
-  await setSetting("organizeMode", false);
+}
+
+async function finishOrganizeMode() {
+  endOrganizeSession();
   await refresh("Organization saved");
 }
 
 async function cancelOrganizeMode() {
-  if (organizeSnapshot) {
-    organizeSnapshot.settings.organizeMode = false;
-    await saveTaboraState(organizeSnapshot);
-  } else {
-    await setSetting("organizeMode", false);
-  }
-  organizeSnapshot = null;
-  organizeDropTarget = null;
-  selectedOrganizeLinks.clear();
-  appState = await getTaboraState();
-  render();
-  showToast("Organization cancelled");
+  const snapshot = organizeSnapshot;
+  const deletedLinkIds = new Set(organizeDeletedLinkIds);
+  endOrganizeSession();
+  if (snapshot) await updateTaboraState((state) => revertOrganizeChanges(state, snapshot, deletedLinkIds));
+  await refresh("Organization cancelled");
 }
 
 document.querySelector("#organizeTool").addEventListener("click", async () => {
-  if (appState.settings.organizeMode) {
+  if (organizeMode) {
     await finishOrganizeMode();
     return;
   }
   organizeSnapshot = structuredClone(appState);
+  organizeDeletedLinkIds.clear();
   selectedOrganizeLinks.clear();
-  await setSetting("organizeMode", true);
-  await refresh();
+  organizeMode = true;
+  render();
 });
 
 document.querySelector("#organizeDone").addEventListener("click", finishOrganizeMode);
@@ -1390,6 +1404,7 @@ document.querySelector("#organizeDelete").addEventListener("click", async () => 
       const page = state.pages.find((item) => item.id === board.pageId);
       for (const link of board.links) {
         if (!selectedOrganizeLinks.has(`${board.id}:${link.id}`)) continue;
+        organizeDeletedLinkIds.add(link.id);
         state.trash.unshift({
           type: "link",
           value: structuredClone(link),
@@ -1469,7 +1484,7 @@ document.querySelector("#trashTool").addEventListener("click", async () => {
 });
 
 nodes.boardGrid.addEventListener("dragstart", (event) => {
-  if (!appState.settings.organizeMode) return;
+  if (!organizeMode) return;
   const link = event.target.closest(".bookmark-row");
   const board = event.target.closest(".board-card");
   if (link) draggedItem = { type: "link", id: link.dataset.linkId, boardId: link.dataset.boardId };
@@ -1600,7 +1615,7 @@ function hideBoardInsertionPreview() {
 
 insertionSurface.addEventListener("pointermove", (event) => {
   if (nodes.boardGrid.querySelector(".inline-board-form")) return;
-  if (nodes.globalSearch.value || appState.settings.organizeMode || event.pointerType === "touch") {
+  if (nodes.globalSearch.value || organizeMode || event.pointerType === "touch") {
     hideBoardInsertionPreview();
     return;
   }
@@ -1937,6 +1952,11 @@ document.querySelector("#importFile").addEventListener("change", async (event) =
     event.target.value = "";
     return;
   }
+  if (/\.json$/i.test(file.name)) {
+    event.target.value = "";
+    await importBackupFile(text);
+    return;
+  }
   let links = [];
   if (/\.html?$/i.test(file.name)) {
     const doc = new DOMParser().parseFromString(text, "text/html");
@@ -1945,6 +1965,36 @@ document.querySelector("#importFile").addEventListener("change", async (event) =
   prepareImport([{ name: file.name.replace(/\.[^.]+$/, ""), links }]);
   event.target.value = "";
 });
+
+async function importBackupFile(text) {
+  let backup;
+  try {
+    backup = parseTaboraBackup(JSON.parse(text));
+  } catch (error) {
+    console.error("Could not read Tabora backup", error);
+    showToast("This is not a valid Tabora backup file", "warning");
+    return;
+  }
+  const linkCount = backup.boards.reduce((count, board) => count + board.links.length, 0);
+  const confirmed = await requestDeleteConfirmation({
+    title: "Restore backup",
+    prompt: `Restore ${backup.pages.length} ${backup.pages.length === 1 ? "page" : "pages"}, ${backup.boards.length} ${backup.boards.length === 1 ? "board" : "boards"}, and ${linkCount} ${linkCount === 1 ? "link" : "links"} from this backup?`,
+    warning: "Your current pages, boards, trash, and preferences will be replaced by the backup.",
+    caution: "You can undo this change.",
+    submitLabel: "Restore"
+  });
+  if (!confirmed) return;
+  try {
+    const { state } = await restoreTaboraBackup(backup);
+    if (organizeMode) endOrganizeSession();
+    setCurrentPage(state.settings.activePageId);
+    nodes.importDialog.close();
+    await refresh("Backup restored", { appearance: true });
+  } catch (error) {
+    console.error("Could not restore Tabora backup", error);
+    showToast(importFailureMessage(error), "warning");
+  }
+}
 
 document.querySelector("#cancelImportPreview").addEventListener("click", () => {
   pendingTaboraPackage = null;
@@ -1966,6 +2016,7 @@ document.querySelector("#commitImport").addEventListener("click", async () => {
     let imported;
     try {
       ({ result: imported } = await importTaboraPackage(pendingTaboraPackage, activePage().id));
+      setCurrentPage(imported.page.id);
     } catch (error) {
       console.error("Could not import Tabora package", error);
       showToast(importFailureMessage(error), "warning");
@@ -2158,7 +2209,6 @@ function renderSettings() {
     input.checked = Boolean(appState.settings[input.dataset.setting]);
   });
   document.querySelector("#quickSaveDestination").value = appState.settings.quickSaveDestination;
-  document.querySelector("#languageSelect").value = appState.settings.language;
 }
 
 document.querySelectorAll("[data-settings-view]").forEach((button) => {
@@ -2181,16 +2231,14 @@ document.querySelector("#quickSaveDestination").addEventListener("change", async
   await refresh("Quick Save destination updated");
 });
 
-document.querySelector("#languageSelect").addEventListener("change", async (event) => {
-  await setSetting("language", event.target.value);
-  await refresh("Language preference updated");
-});
-
 document.querySelector("#changeShortcut").addEventListener("click", async () => {
   try {
-    await extensionApi.tabs.create({ url: "brave://extensions/shortcuts" });
-  } catch {
-    await extensionApi.tabs.create({ url: "chrome://extensions/shortcuts" });
+    // Firefox exposes its own shortcut page; Chromium browsers (Brave, Edge, Opera) all accept chrome:// aliases.
+    if (extensionApi.commands?.openShortcutSettings) await extensionApi.commands.openShortcutSettings();
+    else await extensionApi.tabs.create({ url: "chrome://extensions/shortcuts" });
+  } catch (error) {
+    console.error("Could not open shortcut settings", error);
+    showToast("Open your browser's extension shortcut settings to change this key", "warning");
   }
 });
 
@@ -2242,7 +2290,7 @@ document.querySelector("#resetPreferences").addEventListener("click", async () =
   if (!window.confirm("Reset Tabora preferences? Your pages, boards, and links will stay untouched.")) return;
   const defaults = createDefaultState().settings;
   await updateTaboraState((state) => {
-    state.settings = { ...defaults, activePageId: state.settings.activePageId };
+    state.settings = { ...defaults, activePageId: activePage().id };
   });
   nodes.settingsDialog.close();
   await init();
@@ -2318,87 +2366,6 @@ document.querySelector("#wallpaperUpload").addEventListener("change", async (eve
 });
 
 document.querySelector("#moreWallpapers").addEventListener("click", () => showToast("More original Tabora themes are coming next"));
-
-function openWallpaperDatabase() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open("tabora-assets", 1);
-    request.onupgradeneeded = () => request.result.createObjectStore("wallpapers");
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function saveWallpaperBlob(blob) {
-  const database = await openWallpaperDatabase();
-  const id = `custom-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  await new Promise((resolve, reject) => {
-    const transaction = database.transaction("wallpapers", "readwrite");
-    transaction.objectStore("wallpapers").put({ blob, name: blob.name || "Uploaded wallpaper", createdAt: Date.now() }, id);
-    transaction.oncomplete = resolve;
-    transaction.onerror = () => reject(transaction.error);
-  });
-  database.close();
-  return id;
-}
-
-async function getWallpaperBlob(id = "custom") {
-  const database = await openWallpaperDatabase();
-  const value = await new Promise((resolve, reject) => {
-    const request = database.transaction("wallpapers").objectStore("wallpapers").get(id);
-    request.onsuccess = () => resolve(request.result || null);
-    request.onerror = () => reject(request.error);
-  });
-  database.close();
-  return value instanceof Blob ? value : value?.blob || null;
-}
-
-async function getCustomWallpapers() {
-  const database = await openWallpaperDatabase();
-  const wallpapers = await new Promise((resolve, reject) => {
-    const store = database.transaction("wallpapers").objectStore("wallpapers");
-    const request = store.openCursor();
-    const result = [];
-    request.onsuccess = () => {
-      const cursor = request.result;
-      if (!cursor) { resolve(result); return; }
-      const value = cursor.value;
-      const blob = value instanceof Blob ? value : value?.blob;
-      if (blob) result.push({ id: String(cursor.key), blob, name: value?.name || blob.name || "Uploaded wallpaper", createdAt: value?.createdAt || 0 });
-      cursor.continue();
-    };
-    request.onerror = () => reject(request.error);
-  });
-  database.close();
-  return wallpapers.sort((a, b) => b.createdAt - a.createdAt);
-}
-
-async function deleteCustomWallpaper(id) {
-  const database = await openWallpaperDatabase();
-  await new Promise((resolve, reject) => {
-    const transaction = database.transaction("wallpapers", "readwrite");
-    transaction.objectStore("wallpapers").delete(id);
-    transaction.oncomplete = resolve;
-    transaction.onerror = () => reject(transaction.error);
-  });
-  database.close();
-}
-
-async function renameCustomWallpaper(id, name) {
-  const database = await openWallpaperDatabase();
-  await new Promise((resolve, reject) => {
-    const transaction = database.transaction("wallpapers", "readwrite");
-    const store = transaction.objectStore("wallpapers");
-    const request = store.get(id);
-    request.onsuccess = () => {
-      const value = request.result;
-      const blob = value instanceof Blob ? value : value?.blob;
-      if (blob) store.put({ blob, name, createdAt: value?.createdAt || Date.now() }, id);
-    };
-    transaction.oncomplete = resolve;
-    transaction.onerror = () => reject(transaction.error);
-  });
-  database.close();
-}
 
 function downloadWallpaper(wallpaper) {
   const url = URL.createObjectURL(wallpaper.blob);

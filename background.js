@@ -1,4 +1,4 @@
-/* global extensionApi, importScripts, normalizeUrl, getTaboraState, findDuplicateLink, addBoard, addLink */
+/* global extensionApi, importScripts, normalizeUrl, getTaboraState, findDuplicateLink, ensureQuickSaveBoard, addLink */
 
 var extensionApi = globalThis.browser ?? globalThis.chrome;
 const DEFAULT_ACTION_TITLE = "Tabora";
@@ -49,15 +49,15 @@ async function handleQuickSave(command) {
     await showActionFeedback("!", `Already saved in ${duplicate.page?.name || "Home"} / ${duplicate.board.name}`, "#f5bd48");
     return;
   }
-  let board = state.boards.find((item) => item.pageId === pageId && item.name === "Quick Saves");
-  if (!board) {
-    const created = await addBoard(pageId, "Quick Saves");
-    board = created.result;
-  }
+  const { result: board } = await ensureQuickSaveBoard(pageId);
   const added = await addLink(board.id, { title: tab.title, url: tab.url, favIconUrl: tab.favIconUrl || "" });
   if (added.result?.duplicate) {
     await showActionFeedback("!", `Already saved in ${added.result.page?.name || "Home"} / ${added.result.board.name}`, "#f5bd48");
+    return;
   }
+  if (!added.result) throw new Error("Quick save did not add a link");
+  const page = added.state.pages.find((item) => item.id === board.pageId);
+  await showActionFeedback("✓", `Saved to ${page?.name || "Home"} / ${board.name}`, "#2fa86b");
 }
 
 extensionApi.commands.onCommand.addListener((command) => {

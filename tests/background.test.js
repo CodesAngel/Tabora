@@ -17,7 +17,7 @@ function loadBackground({ useBrowserNamespace = false, workerContext = true } = 
     tabs: { query: async () => [] }
   };
   const context = {
-    addBoard: async () => ({ result: null }),
+    ensureQuickSaveBoard: async () => ({ result: null }),
     addLink: async () => ({ result: null }),
     console,
     findDuplicateLink: () => null,
