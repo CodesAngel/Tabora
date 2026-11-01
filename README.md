@@ -37,14 +37,16 @@
 ### Save
 
 - **Quick Save** with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd>, confirmed by a ✓ badge showing where the tab went.
-- **Save a whole window** as a board from the toolbar popup.
+- **The toolbar popup puts the current tab first**: one "Save to [last board]" button, a ▾ menu with every board plus "New board…", and a warning *before* you save if the tab is already in Tabora, with a "Show it" button that opens the dashboard on that bookmark.
+- **Save a whole window** as a board from the same popup.
 - **Import** browser bookmarks (whole folders or individual links), open tabs, pasted lists, HTML, CSV and text files.
 - **Automatic link details**: title, description and site icon are fetched when you save, once you allow optional site access.
 
 ### Find
 
-- **Instant search** across titles, addresses, notes and board names, in a compact results panel. Press <kbd>/</kbd> to start.
-- **Recent activity**: jump back to links you opened recently.
+- **Search in the header** across titles, addresses, notes and board names. Press <kbd>/</kbd> to start, <kbd>Enter</kbd> to open the first result, or <kbd>Shift</kbd>+<kbd>Enter</kbd> to search the web with your default search engine.
+- **Recently opened** links sit in a row above your boards (you can hide it in *Settings → Appearance*).
+- **Real site icons** in Chromium browsers, read from the browser's own icon cache: no network request and no site-access prompt. Sites the browser has never visited keep a letter tile.
 - **Link health check** finds links that are broken or have moved, and updates moved ones in one click.
 
 ### Make it yours
@@ -52,6 +54,7 @@
 - **60 wallpapers**, dark and light, each with a matching interface palette. You can also upload your own.
 - **Light and dark themes**, compact mode, shorter titles and optional descriptions.
 - **Moods** save a page, theme and wallpaper together so you can switch contexts in one click.
+- **Every tool by name** under *Settings → Tools*: Recently opened, Link health, Smart organize, Moods, Knowledge graph, Vaults and Rooms.
 
 ### Stay safe
 
@@ -94,7 +97,7 @@ Chrome Web Store, Microsoft Edge Add-ons and Firefox Add-ons listings are coming
 
 ## Getting started
 
-1. **Create a board** with **Add board**, or let the welcome tour walk you through it.
+1. **Bring your bookmarks in**: the welcome card offers *Import bookmarks*, *Save open tabs* or *Start empty*.
 2. **Fill it**: press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd> on any page, use the toolbar popup, or import your existing bookmarks.
 3. **Make it yours**: choose a wallpaper and theme from the appearance panel at the bottom left.
 
@@ -104,7 +107,12 @@ Chrome Web Store, Microsoft Edge Add-ons and Firefox Add-ons listings are coming
 |---|---|
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd> | Save the current tab to Quick Saves (works on any page) |
 | <kbd>/</kbd> | Open search |
+| <kbd>Enter</kbd> | Open the first search result |
+| <kbd>Shift</kbd>+<kbd>Enter</kbd> | Search the web for what you typed |
 | <kbd>↑</kbd> <kbd>↓</kbd> | Move through search results and menus |
+| <kbd>Alt</kbd>+<kbd>1</kbd>–<kbd>9</kbd> | Switch to page 1–9 |
+| <kbd>N</kbd> | New board |
+| <kbd>?</kbd> | Show all shortcuts |
 | <kbd>Ctrl</kbd>+<kbd>Z</kbd> | Undo the last change |
 | <kbd>Esc</kbd> | Close search, menus and dialogs |
 
@@ -194,13 +202,15 @@ node tests/browser-smoke.js
 
 > The smoke test erases boards in the profile it connects to. Always use a throwaway `--user-data-dir`, never your everyday browser profile.
 
+> Google Chrome 137 and later ignore `--load-extension`. Use Microsoft Edge or Chromium instead. In Edge, also pass `--disable-sync` and `--disable-features=msImplicitSignin,msEdgeSync` so the throwaway profile doesn't sign in to your Microsoft account.
+
 ### State schema (v4)
 
 ```js
 {
   schemaVersion: 4,
   pages: [],           // { id, name, order, protected }
-  boards: [],          // { id, pageId, name, column, columnOrder, color, icon, size, pinned, links: [] }
+  boards: [],          // { id, pageId, name, column, columnOrder, color, icon, size, pinned, lastUsedAt, links: [] }
   trash: [],           // { id, type: "board" | "link", value, deletedAt, ... }
   recentlyOpened: [],  // the latest 50 opened links
   moods: [],           // saved page, theme and wallpaper combinations
@@ -215,7 +225,6 @@ Ideas being explored for upcoming releases:
 
 - A **command palette** (<kbd>Ctrl</kbd>+<kbd>K</kbd>) to search and run any action from the keyboard
 - A **session timeline** with automatic snapshots of closed windows
-- **Real site icons** served from the browser's own cache
 - **Tags, saved filters** and List, Tiles or Queue views for each board
 - A **theme studio** with accent colors picked automatically from the wallpaper
 - **Restore points** and scheduled, encrypted backup files

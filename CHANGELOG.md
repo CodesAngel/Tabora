@@ -6,16 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-A reliability, privacy and polish release, based on a full code audit. It adds the `unlimitedStorage` permission, so it should ship as a new minor version.
+A reliability, privacy and polish release, based on a full code audit. It also brings in four designs from the UX proposals (real favicons, search up front, a current-tab-first popup and import-first onboarding). It adds the `unlimitedStorage`, `favicon` and `search` permissions, so it should ship as a new minor version.
 
 ### Added
 
-- **Real site icons.** In Chromium browsers, links show the icon the browser already has cached for the site: no network request and no site-access prompt. Sites the browser has never cached keep the saved icon or the letter tile. Adds the `favicon` permission.
-- **Search in the header.** A search field now sits in the page header. <kbd>Enter</kbd> opens the first result, and the last row (or <kbd>Shift</kbd>+<kbd>Enter</kbd>) hands the query to your default search engine. Adds the `search` permission.
+- **Real site icons.** In Chromium browsers, links show the icon the browser already has cached for the site: no network request and no site-access prompt. Sites the browser has never cached keep the saved icon or the letter tile. Icons sit on a light tile so dark ones (GitHub, Stack Overflow) stay visible on dark wallpapers. Adds the `favicon` permission.
+- **Search in the header.** A search field now sits in the page header. <kbd>Enter</kbd> opens the first result, and the last row (or <kbd>Shift</kbd>+<kbd>Enter</kbd>) hands the query to your default search engine, in the same tab (or a new tab if *Open links in new tab* is on). Adds the `search` permission.
 - **Keyboard shortcuts.** <kbd>Alt</kbd>+<kbd>1</kbd>–<kbd>9</kbd> switches pages, <kbd>N</kbd> creates a board, and <kbd>?</kbd> lists every shortcut.
 - **Recently opened** links appear as a row above your boards. It can be turned off in *Settings → Appearance*.
 - **Settings → Tools** lists every workspace tool by name (Link health, Smart organize, Moods, Vaults, Rooms and more) instead of hiding them all behind the sparkle icon.
-
 - **Restore from backup.** The import dialog now accepts the `.json` file from *Settings → Export backup*. You see what the backup contains before restoring, and the restore can be undone.
 - **Quick Save confirmation.** <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd> now shows a green ✓ badge with the page and board the tab was saved to.
 - **Password-protected Shared Rooms.** New room codes (`TABORA2`) no longer contain their password. The password is shown separately, with a Copy button, so it can be sent through a different channel. Older `TABORA1` codes still open.
