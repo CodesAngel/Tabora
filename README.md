@@ -1,216 +1,229 @@
+<div align="center">
+
+<img src="icons/tabora-128.png" width="96" height="96" alt="Tabora logo">
+
 # Tabora
 
-A Chrome Extension that transforms your new-tab page into a visual workspace for organizing browser tabs and bookmarks.
+**Your new tab, organized.** Turn every new tab into a calm, visual workspace of pages and boards for the links you actually use. Private by design: everything stays in your browser.
 
-## Overview
+[![Manifest V3](https://img.shields.io/badge/Manifest-V3-5ee39b?style=flat-square)](https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3)
+[![Version](https://img.shields.io/badge/version-3.1.0-5ee39b?style=flat-square)](CHANGELOG.md)
+[![License: MIT](https://img.shields.io/badge/license-MIT-5ee39b?style=flat-square)](LICENSE)
+[![Local-first](https://img.shields.io/badge/data-local--only-5ee39b?style=flat-square)](#privacy)
 
-Tabora replaces the default new-tab page with an organized dashboard where you can create pages, arrange links into customizable boards, save browser windows, and maintain a centralized hub for your digital workspace. Everything is stored locally in your browser profile with no cloud synchronization or data collection.
+[Features](#features) · [Install](#install) · [Shortcuts](#keyboard-shortcuts) · [Privacy](#privacy) · [Development](#development) · [Changelog](CHANGELOG.md)
+
+</div>
+
+<p align="center">
+  <img src="docs/images/dashboard.png" alt="The Tabora dashboard: page tabs across the top, link boards in columns over a dark leaf wallpaper, and the tool rail on the right" width="900">
+</p>
+
+## Why Tabora
+
+- **Everything in its place.** Group links into boards, and boards into pages such as *Home*, *Work* and *Learning*.
+- **Saving takes a second.** One shortcut saves the current tab; one click saves a whole window.
+- **Nothing leaves your browser.** No account, no server, no tracking.
 
 ## Features
 
-- **Multiple Pages**: Create separate pages for different areas of your life or projects
-- **Customizable Boards**: Arrange links into colorful, customizable boards with 4-column layouts
-- **Quick Save**: Save the current tab using Ctrl+Shift+Y keyboard shortcut
-- **Window Snapshots**: Save your entire browser window as a collection of links
-- **Duplicate Detection**: Automatically detect and prevent saving duplicate links
-- **Compact Search**: Find matching links in a focused results panel without replacing the dashboard view
-- **Trash & Recovery**: Restore accidentally deleted items from trash
-- **Visual Themes**: Choose between light and dark themes with multiple wallpaper options
-- **60 Wallpapers**: A balanced dark and light collection, including original cinematic and anime-inspired themes
-- **Undo System**: Undo recent actions to recover from mistakes
-- **Export & Import**: Export pages and boards as .tabora files for sharing or backup
-- **Private Vaults**: Create private local storage areas for sensitive information
-- **Recent Activity**: Track recently opened links for quick access
-- **Compact Mode**: Toggle between standard and compact board layouts
-- **Selective Bookmark Import**: Choose entire browser bookmark folders or expand them and import only individual links
-- **Link Health Checker**: Verify that saved links are still accessible
-- **Incognito Mode**: Supports incognito browsing
-- **Privacy Mode**: Hide sensitive boards temporarily
-- **Customizable Link Display**: Control title length, descriptions, and metadata display
+### Organize
 
-## Installation
+- **Pages and boards.** Multiple pages, each with column-based boards you can color, label with an icon, resize and pin.
+- **Drag to arrange.** Use Organize mode to move boards and links or delete several at once.
+- **Smart Organize.** Regroups a page's links into categories such as Development, Videos and Reading, based on the website and whole words in the title. It can be undone.
+- **No duplicates.** Tabora tells you where a link is already saved, whether you save it by hand or import it.
 
-### Development Installation
+### Save
 
-Tabora is currently available through manual installation. Follow these steps to install:
+- **Quick Save** with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd>, confirmed by a ✓ badge showing where the tab went.
+- **Save a whole window** as a board from the toolbar popup.
+- **Import** browser bookmarks (whole folders or individual links), open tabs, pasted lists, HTML, CSV and text files.
+- **Automatic link details**: title, description and site icon are fetched when you save, once you allow optional site access.
 
-1. Clone this repository:
+### Find
+
+- **Instant search** across titles, addresses, notes and board names, in a compact results panel. Press <kbd>/</kbd> to start.
+- **Recent activity**: jump back to links you opened recently.
+- **Link health check** finds links that are broken or have moved, and updates moved ones in one click.
+
+### Make it yours
+
+- **60 wallpapers**, dark and light, each with a matching interface palette. You can also upload your own.
+- **Light and dark themes**, compact mode, shorter titles and optional descriptions.
+- **Moods** save a page, theme and wallpaper together so you can switch contexts in one click.
+
+### Stay safe
+
+- **Undo** the last change with <kbd>Ctrl</kbd>+<kbd>Z</kbd>.
+- **Trash** keeps deleted boards and links for 30 days.
+- **Backup and restore**: export your whole workspace as a `.json` file and restore it later. The restore can be undone.
+- **Private vaults** lock a page behind a password (AES-GCM, 600,000-round PBKDF2), together with its recent activity and trash.
+- **Privacy blur** hides board contents when you share your screen. **Private opening** opens links in a private window and keeps them out of your history.
+
+### Share
+
+- **`.tabora` files** share a single board or page with anyone.
+- **Shared Rooms** send a page as an encrypted code that expires after 24 hours. The password travels separately.
+- **Copy** a link, a board or a whole page as plain text.
+
+> **New in the next release:** each tab keeps its own page, saves can no longer overwrite each other, backups can be restored, and more. See the [changelog](CHANGELOG.md#unreleased).
+
+## Install
+
+### From a store
+
+Chrome Web Store, Microsoft Edge Add-ons and Firefox Add-ons listings are coming soon.
+
+### From source
+
+1. Clone the repository:
+
    ```bash
    git clone https://github.com/mehmoodulhaq570/tabora.git
-   cd tabora
    ```
 
-2. Open Chrome or Chromium-based browser and navigate to the extensions page:
-   - Chrome: `chrome://extensions/`
-   - Edge: `edge://extensions/`
-   - Brave: `brave://extensions/`
-   - Opera: `opera://extensions/`
+2. Load it in your browser:
 
-3. Enable "Developer mode" using the toggle in the top right corner
+   | Browser | Steps |
+   |---|---|
+   | Chrome, Edge, Brave, Opera, Vivaldi | Open the extensions page (for example `chrome://extensions`), turn on **Developer mode**, click **Load unpacked**, and select the `tabora` folder. |
+   | Firefox | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on**, and select `manifest.json`. |
 
-4. Click the "Load unpacked" button
+3. Open a new tab. Tabora is your new-tab page.
 
-5. Select the project directory where you cloned Tabora
+## Getting started
 
-6. The extension will be installed and ready to use. Open a new tab to access your Tabora dashboard.
+1. **Create a board** with **Add board**, or let the welcome tour walk you through it.
+2. **Fill it**: press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd> on any page, use the toolbar popup, or import your existing bookmarks.
+3. **Make it yours**: choose a wallpaper and theme from the appearance panel at the bottom left.
 
-### Coming Soon
+## Keyboard shortcuts
 
-Tabora will be available on:
-- Chrome Web Store
-- Microsoft Edge Add-ons
-- Firefox Add-ons
+| Shortcut | Action |
+|---|---|
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd> | Save the current tab to Quick Saves (works on any page) |
+| <kbd>/</kbd> | Open search |
+| <kbd>↑</kbd> <kbd>↓</kbd> | Move through search results and menus |
+| <kbd>Ctrl</kbd>+<kbd>Z</kbd> | Undo the last change |
+| <kbd>Esc</kbd> | Close search, menus and dialogs |
 
-Check back for official distribution links as they become available.
+Change the Quick Save shortcut under **Settings → General → Change**, or in your browser's extension shortcut settings.
 
-## Usage
+## Privacy
 
-### Opening Tabora
+Tabora has no account, no server and no analytics.
 
-Open a new tab to view your Tabora dashboard. The dashboard displays all your pages, boards, and saved links.
+- Your pages, boards, links and settings are stored only in this browser profile.
+- Tabora contacts a website only when you save it (to fetch its title and icon) or run the link health check, and only after you grant optional site access. These requests send no cookies.
+- Exports, backups and shared files stay on your device until you choose to share them.
 
-### Saving Links
+### Permissions
 
-- Use the toolbar popup to save the current tab or entire window
-- Press Ctrl+Shift+Y to save the current tab to your Quick Saves board
-- Search for specific boards in the popup before saving
+| Permission | Why Tabora needs it |
+|---|---|
+| `tabs` | Read the title and address of tabs you save, open saved links, and optionally close tabs after saving a window. |
+| `storage` | Keep your workspace, trash and undo history in local browser storage. |
+| `unlimitedStorage` | Lift the 10 MB local storage limit so large collections keep saving. No data leaves the browser. |
+| `clipboardWrite` | Copy links, boards, pages and room codes when you ask. |
+| `bookmarks` *(optional)* | Import browser bookmarks, requested only when you choose to. |
+| `http://*/*`, `https://*/*` *(optional)* | Fetch link details and check link health, requested only when first needed. |
 
-### Managing Workspace
+## Your data
 
-- **Create Page**: Add a new page from the workspace tools
-- **Create Board**: Add a board to organize related links
-- **Edit Board**: Change color, icon, size, and display name
-- **Pin Boards**: Mark important boards as pinned for quick access
-- **Delete Items**: Move items to trash; restore or permanently delete later
+| Format | What it holds | How to use it |
+|---|---|---|
+| Backup (`.json`) | Your entire workspace: pages, boards, trash and preferences | **Settings → Export backup**; restore from **Import → Upload a file**. |
+| `.tabora` file | One board or one page | Board or page menu → **Export**; anyone with Tabora can import it. |
+| Room code | One page, encrypted, valid for 24 hours | **Workspace tools → Rooms**; send the code and the password separately. |
 
-### Settings
+Each browser profile has its own separate workspace. Use a backup or `.tabora` files to move data between profiles or computers.
 
-Access workspace settings to:
+## Browser support
 
-- Toggle between light and dark themes
-- Change wallpaper and appearance
-- Configure link opening behavior (same tab or new tab)
-- Set quick-save destination
-- Manage incognito mode and privacy settings
-
-## Permissions
-
-Tabora requests the following permissions:
-
-| Permission | Purpose |
-|-----------|---------|
-| `tabs` | Read titles and URLs of tabs you save; create tabs when opening links; optionally close tabs after saving windows |
-| `storage` | Store pages, boards, links, settings, trash data, and undo history locally |
-| `unlimitedStorage` | Lift the 10 MB local storage cap so large bookmark collections and their undo history keep saving |
-| `clipboardWrite` | Copy links, boards, pages, or share packages when you use share or export actions |
-| `bookmarks` (optional) | Import your browser bookmarks only when you choose to do so |
-| `http://*/*`, `https://*/*` (optional) | Check link status and fetch metadata during user-initiated saves or imports |
-
-## Privacy & Data
-
-- No account required
-- No data transmitted to Tabora servers
-- No data sold to third parties
-- All workspace data stored locally in your browser profile
-- Optional link checking contacts only websites you have saved
-- Export files remain on your device unless you share them manually
+| Browser | Status |
+|---|---|
+| Chrome, Edge, Brave, Opera, Vivaldi (111+) | Supported. All use the same package. |
+| Firefox (113+) | Supported through the same `manifest.json`. |
+| Safari | Possible through Apple's converter; see [BROWSER_SUPPORT.md](BROWSER_SUPPORT.md). |
 
 ## Development
 
-### Project Structure
+Tabora is plain JavaScript, HTML and CSS, with no build step and no dependencies.
 
+### Project structure
+
+```text
+tabora/
+├── manifest.json       Extension manifest (Manifest V3, Chromium and Firefox)
+├── shared.js           State layer: storage, locking, migrations, import/export, wallpapers
+├── background.js       Service worker: Quick Save shortcut, recording opened links
+├── dashboard.html/js   The new-tab dashboard
+├── features.js         Workspace tools: recent activity, link health, Smart Organize,
+│                       moods, vaults, rooms
+├── popup.html/js       The toolbar popup
+├── styles.css          Styles for the dashboard and popup
+├── assets/             Wallpapers, thumbnails and the bundled font
+├── icons/              Extension icons
+├── docs/images/        README images
+└── tests/              Unit tests and a browser smoke test
 ```
-├── manifest.json           # Extension configuration
-├── background.js           # Service worker and command handlers
-├── shared.js              # Shared utilities and state management
-├── popup.html/js          # Toolbar popup interface
-├── dashboard.html/js      # New-tab dashboard interface
-├── features.js            # Feature implementations
-├── styles.css             # Global styles
-├── tests/                 # Test files
-├── assets/                # Wallpapers and resources
-├── icons/                 # Extension icons
-└── artifacts/             # Build artifacts
+
+### How it fits together
+
+- **One state object** is stored under a single `storage.local` key and normalized on every read (`normalizeState`). Older data is upgraded automatically.
+- **All writes are serialized.** `updateTaboraState` runs each read-change-write inside a Web Lock, so the dashboard, popup and background worker never overwrite each other. Don't call it from inside another update; Web Locks are not re-entrant.
+- **Per-tab state stays in memory.** The current page and Organize mode belong to each tab; storage only remembers the last page used.
+- **Undo** keeps one snapshot of the previous state; trash keeps items for 30 days.
+
+### Running the tests
+
+```bash
+# Unit tests (Node.js 18+)
+node tests/shared.test.js
+node --test tests/background.test.js
+
+# Browser smoke test (Node.js 22+): start a Chromium browser with a throwaway profile, then run it
+"<path-to-browser>" --remote-debugging-port=9333 --user-data-dir=.browser-profile \
+  --load-extension=. --disable-background-timer-throttling --disable-renderer-backgrounding \
+  --disable-backgrounding-occluded-windows
+node tests/browser-smoke.js
 ```
 
-### Key Modules
+> The smoke test erases boards in the profile it connects to. Always use a throwaway `--user-data-dir`, never your everyday browser profile.
 
-- **shared.js**: Contains state management, storage operations, and utility functions
-- **background.js**: Handles command processing and quick-save functionality
-- **popup.js**: Manages the toolbar popup for quick access and saving
-- **dashboard.js**: Powers the main dashboard interface
+### State schema (v4)
 
-### State Schema (v4)
-
-The application state includes:
-
-```javascript
+```js
 {
   schemaVersion: 4,
-  pages: [],              // Page definitions
-  boards: [],             // Board collections
-  trash: [],              // Deleted items
-  recentlyOpened: [],     // Recently accessed links
-  moods: [],              // Mood configurations
-  vaults: [],             // Private storage areas
-  settings: {}            // User preferences
+  pages: [],           // { id, name, order, protected }
+  boards: [],          // { id, pageId, name, column, columnOrder, color, icon, size, pinned, links: [] }
+  trash: [],           // { id, type: "board" | "link", value, deletedAt, ... }
+  recentlyOpened: [],  // the latest 50 opened links
+  moods: [],           // saved page, theme and wallpaper combinations
+  vaults: [],          // encrypted pages: { id, salt, iv, cipher, iterations }
+  settings: {}         // preferences and the last page used
 }
 ```
 
-## Browser Support
+## Roadmap
 
-Currently Supported:
-- Chrome 90+
-- Chromium-based browsers (Edge, Brave, Opera)
+Ideas being explored for upcoming releases:
 
-Planned Support:
-- Firefox (coming soon)
-- Microsoft Edge (official add-on)
-
-## File Format
-
-Tabora uses `.tabora` files for export/import. These files contain serialized page, board, and link data for manual sharing or backup purposes.
+- A **command palette** (<kbd>Ctrl</kbd>+<kbd>K</kbd>) to search and run any action from the keyboard
+- A **session timeline** with automatic snapshots of closed windows
+- **Real site icons** served from the browser's own cache
+- **Tags, saved filters** and List, Tiles or Queue views for each board
+- A **theme studio** with accent colors picked automatically from the wallpaper
+- **Restore points** and scheduled, encrypted backup files
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## Code of Conduct
-
-This project follows a [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request, and follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+Tabora is released under the [MIT License](LICENSE).
 
-## Changelog
-
-### Version 3.1.0
-
-- Current stable release
-- Full Manifest V3 support
-- Selective browser-bookmark import by folder or individual link
-- 60 original dark and light wallpapers with matching interface palettes
-- Export and import support for individual Tabora pages and boards
-- Privacy-focused local storage
-
-## Roadmap
-
-- Enhanced link metadata preview
-- Collaborative workspace sharing
-- Advanced filtering and search
-- Custom keyboard shortcuts
-- Board templates
-- Performance optimizations
-
-## Support
-
-For issues, feature requests, or questions, please refer to the project repository.
-
-## Acknowledgments
-
-Tabora was built with privacy and user experience as core principles. Special thanks to all contributors and testers who have helped improve the extension.
-
----
-
-**Tabora** - Organize Your Digital Workspace Locally
+<div align="center"><sub>Made for people with too many tabs.</sub></div>
