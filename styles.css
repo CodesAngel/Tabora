@@ -492,6 +492,8 @@ textarea.dark-input { min-height: 92px; padding-top: 10px; resize: vertical; }
 .link-health-redirected { background: #f5bd48; }
 .link-health-insecure { background: #fb923c; }
 .favicon { width: 22px; height: 22px; border-radius: 5px; object-fit: cover; }
+/* A light tile keeps dark icons (GitHub, Stack Overflow) visible on dark wallpapers, as in the mockup. */
+img.favicon { box-sizing: border-box; padding: 3px; background: #f2f5f3; object-fit: contain; }
 .favicon.fallback { display: grid; place-items: center; background: linear-gradient(145deg, #3673ce, #4bc47c); color: white; font-size: var(--text-xs); font-weight: 800; }
 .link-actions { display: none; align-items: center; padding-right: 4px; }
 .bookmark-row:hover .link-actions, .organize-mode .link-actions { display: flex; }

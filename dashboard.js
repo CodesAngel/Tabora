@@ -1358,7 +1358,9 @@ async function searchTheWeb(query) {
   closeSearch();
   try {
     if (extensionApi.search?.query) {
-      await extensionApi.search.query({ text, disposition: appState.settings.openLinksInNewTab ? "NEW_TAB" : "CURRENT_TAB" });
+      // Name this tab explicitly; "CURRENT_TAB" means the browser's focused tab, which may be a different one.
+      const thisTab = appState.settings.openLinksInNewTab ? null : await extensionApi.tabs.getCurrent();
+      await extensionApi.search.query(thisTab ? { text, tabId: thisTab.id } : { text, disposition: "NEW_TAB" });
     } else if (extensionApi.search?.search) {
       const tab = appState.settings.openLinksInNewTab ? await extensionApi.tabs.create({ active: true }) : await extensionApi.tabs.getCurrent();
       await extensionApi.search.search({ query: text, tabId: tab?.id });
