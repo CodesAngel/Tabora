@@ -10,6 +10,12 @@ A reliability, privacy and polish release, based on a full code audit. It adds t
 
 ### Added
 
+- **Real site icons.** In Chromium browsers, links show the icon the browser already has cached for the site: no network request and no site-access prompt. Sites the browser has never cached keep the saved icon or the letter tile. Adds the `favicon` permission.
+- **Search in the header.** A search field now sits in the page header. <kbd>Enter</kbd> opens the first result, and the last row (or <kbd>Shift</kbd>+<kbd>Enter</kbd>) hands the query to your default search engine. Adds the `search` permission.
+- **Keyboard shortcuts.** <kbd>Alt</kbd>+<kbd>1</kbd>–<kbd>9</kbd> switches pages, <kbd>N</kbd> creates a board, and <kbd>?</kbd> lists every shortcut.
+- **Recently opened** links appear as a row above your boards. It can be turned off in *Settings → Appearance*.
+- **Settings → Tools** lists every workspace tool by name (Link health, Smart organize, Moods, Vaults, Rooms and more) instead of hiding them all behind the sparkle icon.
+
 - **Restore from backup.** The import dialog now accepts the `.json` file from *Settings → Export backup*. You see what the backup contains before restoring, and the restore can be undone.
 - **Quick Save confirmation.** <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd> now shows a green ✓ badge with the page and board the tab was saved to.
 - **Password-protected Shared Rooms.** New room codes (`TABORA2`) no longer contain their password. The password is shown separately, with a Copy button, so it can be sent through a different channel. Older `TABORA1` codes still open.
@@ -17,6 +23,11 @@ A reliability, privacy and polish release, based on a full code audit. It adds t
 - **`unlimitedStorage` permission.** Lifts the browser's 10 MB local storage limit so large collections, trash and undo history keep saving. No data leaves the browser.
 
 ### Changed
+
+- **The popup puts the current tab first.** It shows the tab's icon and title with one "Save to [last board]" button; the arrow beside it lists every board plus "New board…". If the tab is already saved, the popup says where before you click, with a "Show it" button that opens the dashboard on that bookmark. Saving the whole window is now a secondary row.
+- **Popup board list** is sorted by last use, hides "Open all" on empty boards, and says "1 link" instead of "1 links".
+- **Onboarding starts with import.** The first step offers Import bookmarks, Save open tabs or Start empty; the last step points to search and shortcuts.
+- **Renaming a wallpaper** uses an inline field instead of the browser's prompt.
 
 - **Each tab keeps its own page.** Switching pages in one new tab no longer switches every other open tab. New tabs open on the page you used last.
 - **Organize mode belongs to the tab that started it.** Cancelling now undoes only that session's moves and deletions, and keeps links saved from the popup, the shortcut or other tabs in the meantime.

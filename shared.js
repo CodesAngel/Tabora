@@ -108,7 +108,9 @@ function createDefaultState() {
       closeTabsAfterSaveAll: false,
       quickSaveDestination: "current-page",
       activeMoodId: "",
-      onboardingComplete: false
+      onboardingComplete: false,
+      showRecentlyOpened: true,
+      lastSaveBoardId: ""
     }
   };
 }
@@ -756,6 +758,7 @@ async function addLink(boardId, values) {
       order: board.links.length
     };
     board.links.push(link);
+    board.lastUsedAt = Date.now();
     return link;
   });
 }
@@ -824,6 +827,7 @@ async function recordLinkOpened(boardId, linkId) {
       openedAt: Date.now()
     });
     state.recentlyOpened = state.recentlyOpened.slice(0, 50);
+    board.lastUsedAt = Date.now();
   });
 }
 
@@ -1019,21 +1023,72 @@ function boardMatches(board, query) {
   return searchText.includes(normalized);
 }
 
-function faviconNode(link) {
-  if (link.favIconUrl) {
-    const image = document.createElement("img");
-    image.className = "favicon";
-    image.src = link.favIconUrl;
-    image.alt = "";
-    image.loading = "lazy";
-    image.decoding = "async";
-    image.referrerPolicy = "no-referrer";
-    return image;
-  }
+// Chromium serves the site icons it has cached from the extension's own origin ("favicon" permission):
+// no network request and no site access. Firefox has no equivalent, so it keeps the saved icon or the letter tile.
+function browserFaviconUrl(pageUrl, size = 32) {
+  if (globalThis.location?.protocol !== "chrome-extension:" || !normalizeUrl(pageUrl)) return "";
+  const url = new URL("/_favicon/", location.origin);
+  url.searchParams.set("pageUrl", pageUrl);
+  url.searchParams.set("size", String(size));
+  return url.href;
+}
+
+function letterFaviconNode(link) {
   const fallback = document.createElement("span");
   fallback.className = "favicon fallback";
   fallback.textContent = (link.title || getDomain(link.url) || "?").slice(0, 1).toUpperCase();
   return fallback;
+}
+
+function faviconPixels(image) {
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  context.drawImage(image, 0, 0);
+  return context.getImageData(0, 0, canvas.width, canvas.height).data;
+}
+
+// For sites it has never cached, the browser answers with a generic page icon instead of an error.
+let placeholderFaviconPromise = null;
+function placeholderFaviconPixels() {
+  placeholderFaviconPromise ??= new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(faviconPixels(image));
+    image.onerror = () => resolve(null);
+    image.src = browserFaviconUrl("https://tabora.invalid/");
+  });
+  return placeholderFaviconPromise;
+}
+
+async function isPlaceholderFavicon(image) {
+  const placeholder = await placeholderFaviconPixels();
+  if (!placeholder || placeholder.length !== image.naturalWidth * image.naturalHeight * 4) return false;
+  const pixels = faviconPixels(image);
+  return pixels.every((value, index) => value === placeholder[index]);
+}
+
+function imageFaviconNode(link, source, onFailure) {
+  const image = document.createElement("img");
+  image.className = "favicon";
+  image.src = source;
+  image.alt = "";
+  image.loading = "lazy";
+  image.decoding = "async";
+  image.referrerPolicy = "no-referrer";
+  image.addEventListener("error", () => image.replaceWith(onFailure()), { once: true });
+  return image;
+}
+
+function faviconNode(link) {
+  const savedIconNode = () => (link.favIconUrl ? imageFaviconNode(link, link.favIconUrl, () => letterFaviconNode(link)) : letterFaviconNode(link));
+  const browserSource = browserFaviconUrl(link.url);
+  if (!browserSource) return savedIconNode();
+  const image = imageFaviconNode(link, browserSource, savedIconNode);
+  image.addEventListener("load", async () => {
+    if (await isPlaceholderFavicon(image).catch(() => false)) image.replaceWith(savedIconNode());
+  }, { once: true });
+  return image;
 }
 
 function setText(parent, selector, value) {

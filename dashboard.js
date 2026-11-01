@@ -45,8 +45,10 @@ const nodes = {
   onboardingProgress: document.querySelector("#onboardingProgress"),
   onboardingTitle: document.querySelector("#onboardingTitle"),
   onboardingDescription: document.querySelector("#onboardingDescription"),
-  onboardingAction: document.querySelector("#onboardingAction"),
-  onboardingNext: document.querySelector("#onboardingNext"),
+  onboardingActions: document.querySelector("#onboardingActions"),
+  shortcutsDialog: document.querySelector("#shortcutsDialog"),
+  recentStrip: document.querySelector("#recentStrip"),
+  recentStripList: document.querySelector("#recentStripList"),
   toast: document.querySelector("#toast")
 };
 
@@ -84,32 +86,38 @@ let pendingRefreshWaiters = [];
 const boardCardCache = new Map();
 let dialogLinkMetadata = null;
 
+// Switchers get to a useful dashboard fastest by importing, so that comes first.
 const ONBOARDING_STEPS = [
   {
-    progress: "Getting started",
-    title: "Welcome to Tabora",
-    description: "Create a board to collect links for a project, topic, or routine.",
-    actionLabel: "Create board",
-    action: () => openBoardDialog(),
+    progress: "Getting started · 1 of 2",
+    title: "Bring your bookmarks in",
+    description: "Pick the folders you want; each becomes a board. Nothing is changed in your browser.",
+    actions: [
+      { label: "Import bookmarks", primary: true, run: () => startImport("bookmarks") },
+      { label: "Save open tabs", run: () => startImport("window") },
+      { label: "Start empty", run: () => openBoardDialog() }
+    ],
     dismissLabel: "Skip for now"
   },
   {
-    progress: "One more step",
+    progress: "Getting started · 2 of 2",
     title: "Add a useful link",
     description: "Save a website, note, or resource to the board you just created.",
-    actionLabel: "Add link",
-    action: () => {
-      const board = activeBoards()[0];
-      if (board) openLinkDialog(board.id);
-    },
+    actions: [{
+      label: "Add link",
+      primary: true,
+      run: () => {
+        const board = activeBoards()[0];
+        if (board) openLinkDialog(board.id);
+      }
+    }],
     dismissLabel: "Skip for now"
   },
   {
     progress: "All set",
     title: "Your workspace is ready",
-    description: "Search, organize, and customize Tabora whenever you need it.",
-    actionLabel: "Open search",
-    action: () => openSearch(),
+    description: "Press / to search your bookmarks or the web, Alt+1–9 to switch pages, and ? to see every shortcut.",
+    actions: [{ label: "Show shortcuts", primary: true, run: () => nodes.shortcutsDialog.showModal() }],
     dismissLabel: "Done"
   }
 ];
@@ -144,9 +152,11 @@ async function init() {
   // Older versions kept a full extra copy of the state after every import; it was never read.
   void extensionApi.storage.local.remove("taboraLastImportBackup").catch(() => {});
   appState = await getTaboraState();
-  currentPageId = appState.settings.activePageId;
+  const requestedPageId = new URLSearchParams(location.search).get("page");
+  currentPageId = appState.pages.some((page) => page.id === requestedPageId) ? requestedPageId : appState.settings.activePageId;
   await applyAppearance();
   render();
+  revealRequestedLink();
 }
 
 function activePage() {
@@ -169,6 +179,7 @@ function render() {
   renderSearchResults();
   renderToolState();
   renderOnboarding();
+  renderRecentStrip();
 }
 
 function renderPages() {
@@ -361,22 +372,84 @@ function renderOrganizeToolbar() {
   document.querySelector("#organizeDelete").disabled = count === 0;
 }
 
+function onboardingStepIndex() {
+  const boards = activeBoards();
+  return boards.length === 0 ? 0 : boards.some((board) => board.links.length > 0) ? 2 : 1;
+}
+
 function renderOnboarding() {
   if (appState.settings.onboardingComplete) {
     nodes.onboardingCard.hidden = true;
     return;
   }
 
-  const boards = activeBoards();
-  const stepIndex = boards.length === 0 ? 0 : boards.some((board) => board.links.length > 0) ? 2 : 1;
-  const step = ONBOARDING_STEPS[stepIndex];
-
+  const step = ONBOARDING_STEPS[onboardingStepIndex()];
   nodes.onboardingProgress.textContent = step.progress;
   nodes.onboardingTitle.textContent = step.title;
   nodes.onboardingDescription.textContent = step.description;
-  nodes.onboardingAction.textContent = step.actionLabel;
-  nodes.onboardingNext.textContent = step.dismissLabel;
+  const buttons = step.actions.map((action, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = action.primary ? "accent-button" : "secondary-button";
+    button.dataset.onboardingAction = String(index);
+    button.textContent = action.label;
+    return button;
+  });
+  const dismiss = document.createElement("button");
+  dismiss.type = "button";
+  dismiss.className = "text-button onboarding-dismiss";
+  dismiss.dataset.onboardingDismiss = "true";
+  dismiss.textContent = step.dismissLabel;
+  nodes.onboardingActions.replaceChildren(...buttons, dismiss);
   nodes.onboardingCard.hidden = false;
+}
+
+let recentStripKey = "";
+
+function renderRecentStrip() {
+  const entries = appState.settings.showRecentlyOpened ? appState.recentlyOpened : [];
+  const items = [];
+  for (const entry of entries) {
+    const board = appState.boards.find((item) => item.id === entry.boardId);
+    const link = board?.links.find((item) => item.id === entry.linkId);
+    if (link) items.push({ board, link });
+    if (items.length === 8) break;
+  }
+  const key = JSON.stringify(items.map(({ board, link }) => [board.id, link.id, link.title, link.url, link.favIconUrl]));
+  if (key === recentStripKey) return;
+  recentStripKey = key;
+  nodes.recentStrip.hidden = !items.length;
+  nodes.recentStripList.replaceChildren(...items.map(({ board, link }) => {
+    const chip = document.createElement("a");
+    chip.className = "recent-chip";
+    chip.href = link.url;
+    chip.dataset.recentLink = link.id;
+    chip.dataset.boardId = board.id;
+    chip.title = `${link.title} · ${board.name}`;
+    const title = document.createElement("span");
+    title.textContent = link.title || getDomain(link.url);
+    chip.append(faviconNode(link), title);
+    return chip;
+  }));
+}
+
+function startImport(kind) {
+  document.querySelector("#importTool").click();
+  document.querySelector(`[data-import="${kind}"]`)?.click();
+}
+
+// The popup's "Show it" opens dashboard.html?page=…&link=… to point at an existing bookmark.
+function revealRequestedLink() {
+  const params = new URLSearchParams(location.search);
+  const linkId = params.get("link");
+  if (!params.has("page") && !linkId) return;
+  history.replaceState(null, "", location.pathname);
+  if (!linkId) return;
+  const row = nodes.boardGrid.querySelector(`.bookmark-row[data-link-id="${CSS.escape(linkId)}"]`);
+  if (!row) return;
+  row.scrollIntoView({ block: "center", behavior: "smooth" });
+  row.classList.add("is-revealed");
+  setTimeout(() => row.classList.remove("is-revealed"), 2600);
 }
 
 async function completeOnboarding() {
@@ -1191,6 +1264,7 @@ document.querySelectorAll("dialog").forEach((dialog) => {
 });
 
 const searchTool = document.querySelector("#searchTool");
+const headerSearch = document.querySelector("#headerSearch");
 const clearSearchButton = document.querySelector("#clearSearch");
 const MAX_SEARCH_RESULTS = 60;
 
@@ -1232,7 +1306,7 @@ function renderSearchResults() {
     const hint = document.createElement("span");
     hint.textContent = "Try a different title, board, domain, or URL.";
     empty.append(title, hint);
-    nodes.searchResultsList.append(empty);
+    nodes.searchResultsList.append(empty, createWebSearchItem(query));
     return;
   }
 
@@ -1261,6 +1335,40 @@ function renderSearchResults() {
     item.append(anchor);
     nodes.searchResultsList.append(item);
   }
+  nodes.searchResultsList.append(createWebSearchItem(query));
+}
+
+function createWebSearchItem(query) {
+  const item = document.createElement("li");
+  item.className = "search-result-item search-web-item";
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "search-result-link search-web-link";
+  button.dataset.webSearch = "true";
+  button.innerHTML = '<svg class="search-web-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg><span class="search-result-copy"><strong></strong></span><span class="search-result-board"><kbd>Shift</kbd> + <kbd>Enter</kbd></span>';
+  button.querySelector("strong").textContent = `Search the web for “${query}”`;
+  item.append(button);
+  return item;
+}
+
+// Hands the query to the browser's default search engine; Firefox before 111 only has search.search().
+async function searchTheWeb(query) {
+  const text = String(query || "").trim();
+  if (!text) return;
+  closeSearch();
+  try {
+    if (extensionApi.search?.query) {
+      await extensionApi.search.query({ text, disposition: appState.settings.openLinksInNewTab ? "NEW_TAB" : "CURRENT_TAB" });
+    } else if (extensionApi.search?.search) {
+      const tab = appState.settings.openLinksInNewTab ? await extensionApi.tabs.create({ active: true }) : await extensionApi.tabs.getCurrent();
+      await extensionApi.search.search({ query: text, tabId: tab?.id });
+    } else {
+      throw new Error("Search API unavailable");
+    }
+  } catch (error) {
+    console.error("Could not search the web", error);
+    showToast("Could not open a web search", "warning");
+  }
 }
 
 function syncSearchState() {
@@ -1268,6 +1376,7 @@ function syncSearchState() {
   document.body.classList.toggle("search-active", isOpen);
   searchTool.classList.toggle("active", isOpen);
   searchTool.setAttribute("aria-expanded", String(isOpen));
+  headerSearch.setAttribute("aria-expanded", String(isOpen));
   clearSearchButton.hidden = !nodes.globalSearch.value;
 }
 
@@ -1297,6 +1406,7 @@ searchTool.addEventListener("click", () => {
   if (nodes.searchPanel.hidden) openSearch();
   else closeSearch();
 });
+headerSearch.addEventListener("click", openSearch);
 nodes.globalSearch.addEventListener("input", () => {
   syncSearchState();
   if (searchRenderTimer) clearTimeout(searchRenderTimer);
@@ -1315,6 +1425,13 @@ clearSearchButton.addEventListener("click", () => {
 });
 
 nodes.globalSearch.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.isComposing) {
+    event.preventDefault();
+    if (event.shiftKey) { void searchTheWeb(nodes.globalSearch.value); return; }
+    if (searchRenderTimer) { clearTimeout(searchRenderTimer); searchRenderTimer = null; renderSearchResults(); }
+    nodes.searchResultsList.querySelector(".search-result-link")?.click();
+    return;
+  }
   if (event.key !== "ArrowDown") return;
   const firstResult = nodes.searchResultsList.querySelector(".search-result-link");
   if (!firstResult) return;
@@ -1343,6 +1460,7 @@ nodes.searchResultsList.addEventListener("keydown", (event) => {
 });
 
 nodes.searchResultsList.addEventListener("click", async (event) => {
+  if (event.target.closest("[data-web-search]")) { await searchTheWeb(nodes.globalSearch.value); return; }
   const anchor = event.target.closest("[data-search-open-link]");
   if (!anchor) return;
   event.preventDefault();
@@ -2343,12 +2461,7 @@ document.querySelector("#yourWallpaperGrid").addEventListener("click", async (ev
     return;
   }
   if (renameButton) {
-    const wallpaper = (await getCustomWallpapers()).find((item) => item.id === renameButton.dataset.renameWallpaper);
-    const name = wallpaper && window.prompt("Wallpaper name", wallpaper.name);
-    if (name?.trim()) {
-      await renameCustomWallpaper(wallpaper.id, name.trim());
-      await renderAppearancePanel();
-    }
+    startWallpaperRename(renameButton.closest(".custom-wallpaper-card"), renameButton.dataset.renameWallpaper);
     return;
   }
   if (!selectButton) return;
@@ -2371,6 +2484,32 @@ document.querySelector("#wallpaperUpload").addEventListener("change", async (eve
 });
 
 document.querySelector("#moreWallpapers").addEventListener("click", () => showToast("More original Tabora themes are coming next"));
+
+function startWallpaperRename(card, id) {
+  const nameNode = card?.querySelector(".custom-wallpaper-name");
+  if (!nameNode) return;
+  const form = document.createElement("form");
+  form.className = "custom-wallpaper-rename";
+  form.innerHTML = '<input class="dark-input" maxlength="60" aria-label="Wallpaper name" required><button class="accent-button" type="submit">Save</button>';
+  const input = form.querySelector("input");
+  input.value = nameNode.textContent;
+  nameNode.replaceWith(form);
+  input.focus();
+  input.select();
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const name = input.value.trim();
+    if (name) await renameCustomWallpaper(id, name);
+    await renderAppearancePanel();
+  });
+  form.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    event.stopPropagation();
+    form.replaceWith(nameNode);
+    card.querySelector("[data-rename-wallpaper]")?.focus();
+  });
+}
 
 function downloadWallpaper(wallpaper) {
   const url = URL.createObjectURL(wallpaper.blob);
@@ -2401,21 +2540,47 @@ async function applyAppearance() {
   appliedAppearanceKey = appearanceKey;
 }
 
-nodes.onboardingAction.addEventListener("click", () => {
-  const boards = activeBoards();
-  const stepIndex = boards.length === 0 ? 0 : boards.some((board) => board.links.length > 0) ? 2 : 1;
-  ONBOARDING_STEPS[stepIndex].action();
+nodes.onboardingActions.addEventListener("click", (event) => {
+  if (event.target.closest("[data-onboarding-dismiss]")) { void completeOnboarding(); return; }
+  const button = event.target.closest("[data-onboarding-action]");
+  if (button) ONBOARDING_STEPS[onboardingStepIndex()].actions[Number(button.dataset.onboardingAction)]?.run();
 });
-nodes.onboardingNext.addEventListener("click", () => { void completeOnboarding(); });
+nodes.recentStripList.addEventListener("click", async (event) => {
+  const chip = event.target.closest("[data-recent-link]");
+  if (!chip) return;
+  event.preventDefault();
+  const board = appState.boards.find((item) => item.id === chip.dataset.boardId);
+  const link = board?.links.find((item) => item.id === chip.dataset.recentLink);
+  if (link) await openSingleLink(link);
+});
 document.addEventListener("click", (event) => {
   if (!event.target.closest("#contextMenu") && !event.target.closest("[data-board-menu]") && !event.target.closest("[data-page-options]")) hideContextMenu();
   if (!event.target.closest("#appearancePanel") && !event.target.closest("#wallpaperTool")) closeAppearancePanel();
-  if (!event.target.closest("#searchPanel") && !event.target.closest("#searchTool")) closeSearch();
+  if (!event.target.closest("#searchPanel") && !event.target.closest("#searchTool") && !event.target.closest("#headerSearch")) closeSearch();
 });
+async function switchToPageNumber(number) {
+  const page = ordered(appState.pages)[number - 1];
+  if (!page || page.id === activePage().id) return;
+  closeSearch();
+  setCurrentPage(page.id);
+  render();
+  await setSetting("activePageId", page.id);
+}
+
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !nodes.contextMenu.hidden) { event.preventDefault(); hideContextMenu({ restoreFocus: true }); return; }
   if (event.key === "Escape" && !nodes.searchPanel.hidden) { event.preventDefault(); closeSearch(); return; }
-  if (event.key === "/" && !event.target.matches("input, textarea")) { event.preventDefault(); openSearch(); }
+  // Alt+1-9 reads the physical key so it also works where Option/AltGr turns digits into other characters.
+  const digit = /^Digit([1-9])$/.exec(event.code);
+  if (event.altKey && !event.ctrlKey && !event.metaKey && digit && !document.querySelector("dialog[open]")) {
+    event.preventDefault();
+    void switchToPageNumber(Number(digit[1]));
+    return;
+  }
+  if (event.ctrlKey || event.metaKey || event.altKey || event.target.closest("input, textarea, select, [contenteditable]") || document.querySelector("dialog[open]")) return;
+  if (event.key === "/") { event.preventDefault(); openSearch(); return; }
+  if (event.key === "?") { event.preventDefault(); closeSearch(); nodes.shortcutsDialog.showModal(); return; }
+  if ((event.key === "n" || event.key === "N") && !organizeMode) { event.preventDefault(); closeSearch(); openBoardDialog(); }
 });
 extensionApi.storage.onChanged.addListener((changes) => {
   const change = changes[TABORA_STORAGE_KEY];

@@ -24,3 +24,5 @@ Tabora uses the Manifest V3 WebExtensions platform.
 - Tabora has no account or sync backend. Each browser profile keeps a separate local workspace.
 - Use `.tabora` export/import to move pages and boards between browser profiles.
 - The optional `bookmarks` and website-access permissions remain optional in every supported WebExtensions build.
+- Site icons come from the browser's icon cache (`favicon` permission) in Chromium browsers only. Firefox ignores that permission and shows the icon saved with the link, or a letter tile.
+- "Search the web" uses `search.query` where available and falls back to `search.search` in older Firefox versions.

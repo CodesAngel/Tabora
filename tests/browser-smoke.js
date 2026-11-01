@@ -96,23 +96,23 @@ async function waitForTargets() {
     const initial = {
       visible: !card.hidden,
       title: document.querySelector("#onboardingTitle").textContent,
-      action: document.querySelector("#onboardingAction").textContent
+      actions: [...document.querySelectorAll("[data-onboarding-action]")].map((button) => button.textContent)
     };
-    document.querySelector("#onboardingAction").click();
+    document.querySelector('[data-onboarding-action="2"]').click();
     const editorOpened = document.querySelector("#boardDialog").open;
     document.querySelector("#boardDialog").close();
     await addBoard("home", "Tour board");
     await refresh();
     await new Promise((resolve) => setTimeout(resolve, 100));
     const afterBoard = document.querySelector("#onboardingTitle").textContent;
-    document.querySelector("#onboardingNext").click();
+    document.querySelector("[data-onboarding-dismiss]").click();
     await new Promise((resolve) => setTimeout(resolve, 80));
     const state = await getTaboraState();
     return { initial, editorOpened, afterBoard, complete: state.settings.onboardingComplete, closed: card.hidden };
   })()`);
   assert.equal(tour.initial.visible, true);
-  assert.equal(tour.initial.title, "Welcome to Tabora");
-  assert.equal(tour.initial.action, "Create board");
+  assert.equal(tour.initial.title, "Bring your bookmarks in");
+  assert.deepEqual(tour.initial.actions, ["Import bookmarks", "Save open tabs", "Start empty"]);
   assert.equal(tour.editorOpened, true);
   assert.equal(tour.afterBoard, "Add a useful link");
   assert.equal(tour.complete, true);
@@ -395,6 +395,34 @@ async function waitForTargets() {
     fs.writeFileSync(screenshotPath, Buffer.from(screenshot.data, "base64"));
   }
 
+  const discovery = await client.evaluate(`(async () => {
+    const board = (await addBoard(activePage().id, "Discovery board", [{ title: "Example docs", url: "https://example.com/docs" }])).result;
+    await recordLinkOpened(board.id, board.links[0].id);
+    await refresh();
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    const chips = [...document.querySelectorAll("#recentStripList .recent-chip")].map((chip) => chip.lastElementChild.textContent);
+    const icon = document.querySelector(".recent-chip .favicon");
+    document.querySelector("#headerSearch").click();
+    nodes.globalSearch.value = "zzz-no-match";
+    nodes.globalSearch.dispatchEvent(new Event("input"));
+    await new Promise((resolve) => setTimeout(resolve, 220));
+    const webRow = document.querySelector("[data-web-search] strong")?.textContent;
+    const searchOpen = !nodes.searchPanel.hidden;
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "?", bubbles: true }));
+    const shortcutsOpen = nodes.shortcutsDialog.open;
+    nodes.shortcutsDialog.close();
+    await deleteBoard(board.id);
+    await refresh();
+    return { chips, hasIcon: Boolean(icon), iconUrl: browserFaviconUrl("https://example.com/docs"), webRow, searchOpen, shortcutsOpen };
+  })()`);
+  assert.deepEqual(discovery.chips, ["Example docs"]);
+  assert.equal(discovery.hasIcon, true);
+  assert.match(discovery.iconUrl, /\/_favicon\/\?pageUrl=https%3A%2F%2Fexample\.com%2Fdocs&size=32$/);
+  assert.equal(discovery.searchOpen, true);
+  assert.equal(discovery.webRow, "Search the web for “zzz-no-match”");
+  assert.equal(discovery.shortcutsOpen, true);
+
   const popupUrl = new URL("popup.html", page.url).href;
   await client.send("Page.navigate", { url: popupUrl });
   await new Promise((resolve) => setTimeout(resolve, 800));
@@ -412,6 +440,14 @@ async function waitForTargets() {
   assert.match(lightPopup.font, /Nunito Sans/);
   assert.equal(lightPopup.fontLoaded, true);
   assert.equal(lightPopup.horizontalOverflow, false);
+  const popupLayout = await client.evaluate(`({
+    saveLabel: document.querySelector("#saveTab").textContent,
+    windowRow: document.querySelector("#windowSaveLabel").textContent,
+    hasOldControls: Boolean(document.querySelector("#addCurrentTab, #targetBoard"))
+  })`);
+  assert.match(popupLayout.saveLabel, /^Save to /);
+  assert.match(popupLayout.windowRow, /^Save whole window \(\d+ tabs?\) as a board$/);
+  assert.equal(popupLayout.hasOldControls, false);
 
   if (popupScreenshotPath) {
     const screenshot = await client.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });

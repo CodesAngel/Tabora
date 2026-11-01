@@ -126,6 +126,8 @@ Tabora has no account, no server and no analytics.
 | `storage` | Keep your workspace, trash and undo history in local browser storage. |
 | `unlimitedStorage` | Lift the 10 MB local storage limit so large collections keep saving. No data leaves the browser. |
 | `clipboardWrite` | Copy links, boards, pages and room codes when you ask. |
+| `favicon` | Show site icons from the browser's own icon cache (Chromium browsers), without contacting the site. |
+| `search` | Hand a search to your default search engine when you choose "Search the web". |
 | `bookmarks` *(optional)* | Import browser bookmarks, requested only when you choose to. |
 | `http://*/*`, `https://*/*` *(optional)* | Fetch link details and check link health, requested only when first needed. |
 

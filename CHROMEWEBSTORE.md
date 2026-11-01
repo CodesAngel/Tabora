@@ -64,6 +64,8 @@ English
 | `storage` | permissions | Stores pages, boards, links, settings, trash recovery data, and undo state locally in the browser profile. |
 | `unlimitedStorage` | permissions | Lifts the default 10 MB local storage limit so large bookmark collections, trash recovery data, and undo state continue to save. No data leaves the browser. |
 | `clipboardWrite` | permissions | Copies a link, board, page, or encrypted temporary room package when the user chooses a share or copy action. |
+| `favicon` | permissions | Shows the icon of each saved site from the browser's local icon cache, so boards are recognizable without network requests or site access. |
+| `search` | permissions | Sends the text typed in Tabora's search box to the user's default search engine, only when the user chooses "Search the web" or presses Shift+Enter. |
 | `bookmarks` | optional_permissions | Imports browser bookmarks only after the user selects Browser bookmarks and approves access. |
 | `http://*/*`, `https://*/*` | optional_host_permissions | Checks saved links and fetches title, description, and favicon metadata during user-initiated link saves or imports only after the user allows one-time optional site access in Chrome. |
 

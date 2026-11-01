@@ -13,6 +13,7 @@
       <header class="page-header">
         <nav id="pageTabs" class="page-tabs" aria-label="Pages"></nav>
         <button id="addPageButton" class="square-button" title="Add New Page" aria-label="Add New Page"><span class="icon-plus"></span></button>
+        <button id="headerSearch" class="header-search" type="button" aria-controls="searchPanel" aria-expanded="false" aria-keyshortcuts="/"><svg class="header-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7.5"></circle><path d="m16.5 16.5 4 4"></path></svg><span>Search bookmarks or the web</span><kbd aria-hidden="true">/</kbd></button>
       </header>
 
       <div id="searchPanel" class="floating-search" role="search" hidden>
@@ -23,7 +24,7 @@
           <button id="clearSearch" class="plain-icon-button" type="button" aria-label="Clear search" hidden>&times;</button>
         </div>
         <section id="searchResults" class="search-results" aria-labelledby="searchResultsSummary" hidden>
-          <div class="search-results-header"><h2 id="searchResultsSummary" aria-live="polite">Start typing to search</h2><span>Press Esc to close</span></div>
+          <div class="search-results-header"><h2 id="searchResultsSummary" aria-live="polite">Start typing to search</h2><span><kbd>Enter</kbd> open · <kbd>Shift</kbd>+<kbd>Enter</kbd> web · <kbd>Esc</kbd> close</span></div>
           <ul id="searchResultsList" class="search-results-list" role="list"></ul>
         </section>
       </div>
@@ -34,10 +35,12 @@
           <h2 id="onboardingTitle">Welcome to Tabora</h2>
           <p id="onboardingDescription">Create a board to collect links for a project, topic, or routine.</p>
         </div>
-        <div class="onboarding-actions">
-          <button id="onboardingAction" class="accent-button" type="button">Create board</button>
-          <button id="onboardingNext" class="secondary-button" type="button">Skip for now</button>
-        </div>
+        <div id="onboardingActions" class="onboarding-actions"></div>
+      </section>
+
+      <section id="recentStrip" class="recent-strip" aria-labelledby="recentStripTitle" hidden>
+        <h2 id="recentStripTitle">Recently opened</h2>
+        <nav id="recentStripList" class="recent-strip-list" aria-labelledby="recentStripTitle"></nav>
       </section>
 
       <main class="workspace-main">
@@ -173,6 +176,7 @@
           <h2 id="settingsDialogTitle">Settings</h2>
           <nav aria-label="Settings sections">
             <button class="settings-nav-button active" type="button" data-settings-view="general"><svg class="settings-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"></path></svg>General</button>
+            <button class="settings-nav-button" type="button" data-settings-view="tools"><svg class="settings-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 14 8.5 19.5 10.5 14 12.5 12 18 10 12.5 4.5 10.5 10 8.5 12 3Z"></path></svg>Tools</button>
             <button class="settings-nav-button" type="button" data-settings-view="account"><svg class="settings-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M5 21a7 7 0 0 1 14 0"></path></svg>Account</button>
             <button class="settings-nav-button" type="button" data-settings-view="support"><svg class="settings-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle><path d="m5.6 5.6 4.3 4.3M14.1 14.1l4.3 4.3M18.4 5.6l-4.3 4.3M9.9 14.1l-4.3 4.3"></path></svg>Support</button>
           </nav>
@@ -187,6 +191,7 @@
               <label class="setting-row"><span><strong>Group right-side tools</strong><small>Keep Search and Settings visible and place other tools in one menu.</small></span><input type="checkbox" data-setting="groupRightTools"><i></i></label>
               <label class="setting-row"><span><strong>Hide extra bookmarks in long boards</strong><small>Show the first six bookmarks until the board is opened.</small></span><input type="checkbox" data-setting="hideExtraBookmarks"><i></i></label>
               <label class="setting-row"><span><strong>Shorten long titles</strong><small>Keep long bookmark titles on one line.</small></span><input type="checkbox" data-setting="shortenLongTitles"><i></i></label>
+              <label class="setting-row"><span><strong>Show recently opened</strong><small>List the links you opened last above your boards.</small></span><input type="checkbox" data-setting="showRecentlyOpened"><i></i></label>
             </fieldset>
             <fieldset class="settings-group">
               <legend>Behavior</legend>
@@ -196,6 +201,20 @@
               <label class="setting-select-row"><span><strong>Quick Save destination</strong><small>Where Tabora saves new links.</small></span><select id="quickSaveDestination"><option value="current-page">Current Page</option><option value="home">Home</option></select></label>
               <div class="setting-select-row"><span><strong>Change quick save shortcut</strong><small>Open browser shortcut settings to change this key.</small></span><div class="shortcut-control"><kbd>Ctrl+Shift+Y</kbd><button id="changeShortcut" class="secondary-button" type="button">Change</button></div></div>
             </fieldset>
+          </section>
+          <section class="settings-view" data-view="tools">
+            <h2>Tools</h2>
+            <div class="settings-tool-grid">
+              <button class="feature-action" type="button" data-open-feature="activity"><strong>Recently opened</strong><span>Every link you opened, newest first</span></button>
+              <button class="feature-action" type="button" data-open-feature="organize"><strong>Link health</strong><span>Find broken and redirected links</span></button>
+              <button class="feature-action" type="button" data-open-feature="organize"><strong>Smart organize</strong><span>Sort this page's links by topic</span></button>
+              <button class="feature-action" type="button" data-open-feature="spaces"><strong>Moods</strong><span>Save a page with its theme and wallpaper</span></button>
+              <button class="feature-action" type="button" data-open-feature="knowledge"><strong>Knowledge graph</strong><span>Map this page's boards and sites</span></button>
+              <button class="feature-action" type="button" data-open-feature="vaults"><strong>Vaults</strong><span>Lock a page behind a password</span></button>
+              <button class="feature-action" type="button" data-open-feature="rooms"><strong>Rooms</strong><span>Share a page as an encrypted package</span></button>
+              <button class="feature-action" type="button" data-open-feature="overview"><strong>Undo and sessions</strong><span>Undo the last change or save this window</span></button>
+            </div>
+            <p class="settings-tool-hint">These also live behind the sparkle icon in the right-hand toolbar.</p>
           </section>
           <section class="settings-view" data-view="account">
             <h2>Account</h2><div class="settings-info"><strong>Your Tabora is local</strong><p>No account is required. Pages, boards, links, and preferences stay in this browser profile.</p><button id="exportTaboraData" class="secondary-button" type="button">Export Tabora data</button></div>
@@ -268,6 +287,21 @@
         <button id="organizeDone" class="organize-done" type="button">Done</button>
       </div>
     </div>
+
+    <dialog id="shortcutsDialog" class="app-dialog small-dialog shortcuts-dialog" aria-labelledby="shortcutsDialogTitle">
+      <header class="dialog-header"><div><span class="eyebrow">Keyboard</span><h2 id="shortcutsDialogTitle">Shortcuts</h2></div><button class="dialog-close" type="button" data-close-dialog="shortcutsDialog" aria-label="Close">&times;</button></header>
+      <dl class="shortcut-list">
+        <div><dt><kbd>/</kbd></dt><dd>Search bookmarks</dd></div>
+        <div><dt><kbd>Enter</kbd></dt><dd>Open the first result</dd></div>
+        <div><dt><kbd>Shift</kbd> + <kbd>Enter</kbd></dt><dd>Search the web</dd></div>
+        <div><dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Move through results</dd></div>
+        <div><dt><kbd>Alt</kbd> + <kbd>1</kbd>–<kbd>9</kbd></dt><dd>Switch page</dd></div>
+        <div><dt><kbd>N</kbd></dt><dd>New board</dd></div>
+        <div><dt><kbd>Esc</kbd></dt><dd>Close search or menus</dd></div>
+        <div><dt><kbd>?</kbd></dt><dd>Show this list</dd></div>
+        <div><dt><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Y</kbd></dt><dd>Save the current tab (any page)</dd></div>
+      </dl>
+    </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 

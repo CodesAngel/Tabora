@@ -382,6 +382,10 @@ async function joinRoomPackage() {
 }
 
 document.querySelector("#featureTool").addEventListener("click", () => openFeatureCenter());
+document.querySelectorAll("[data-open-feature]").forEach((button) => button.addEventListener("click", () => {
+  nodes.settingsDialog.close();
+  void openFeatureCenter(button.dataset.openFeature);
+}));
 document.querySelectorAll("[data-feature-view]").forEach((button) => button.addEventListener("click", async () => {
   document.querySelectorAll("[data-feature-view]").forEach((item) => item.classList.toggle("active", item === button));
   document.querySelectorAll("[data-feature-section]").forEach((section) => section.classList.toggle("active", section.dataset.featureSection === button.dataset.featureView));
