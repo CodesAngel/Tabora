@@ -1,6 +1,6 @@
 # Tabora: session notes
 
-Last updated: 2026-11-02
+Last updated: 2026-11-04
 
 ## Where the designs live
 
@@ -47,12 +47,19 @@ From **ux-mockups**, proposals 04, 05, 06 and 08 are built (commits `2538ce7` an
 - In Edge, also pass `--disable-sync --disable-features=msImplicitSignin,msEdgeSync`. Otherwise a fresh profile signs in to the Windows Microsoft account and starts syncing extensions.
 - Driving Edge over CDP: in Node, `new URL("chrome-extension://…").origin` is `"null"`, so build the origin from the string. MV3 service workers drop out of `/json/list` when they go idle.
 
+## Tried and dropped
+
+Proposals **02** and **03** from `ux-mockups` were built on 2026-11-04 and then rolled back. They looked fine in the mockups but not in the real app. Don't rebuild either one as it was designed.
+
+- **02 · Simpler toolbar + mode banner:** the right-hand icon rail and the wallpaper button were replaced by a header with + Board, ⋯ More (a menu of named tools showing On/Off) and Settings. An amber banner with "Turn off" showed while private opening or blur was on.
+- **03 · Undo instead of confirm:** deleting a link, board or page happened at once, with an Undo toast for 8 seconds. Boards and links could be dragged by a hover grip without Organize mode.
+
+The rail, the confirmation dialogs and Organize mode stay as they are.
+
 ## Left to do
 
 ### Remaining proposals in ux-mockups
 - [ ] 01 · Make hidden actions visible (link and board actions only appear on hover today)
-- [ ] 02 · Simpler toolbar + mode banner (for Organize, Privacy blur, Private opening)
-- [ ] 03 · Undo instead of confirm (undo toast after deletes instead of a confirmation dialog)
 - [ ] 07 · Adaptive columns + density
 
 ### ux-mockups-2 (Tabora 2.0 concepts)
