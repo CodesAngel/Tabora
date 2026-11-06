@@ -6,7 +6,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-A reliability, privacy and polish release, based on a full code audit. It also brings in four designs from the UX proposals (real favicons, search up front, a current-tab-first popup and import-first onboarding). It adds the `unlimitedStorage`, `favicon` and `search` permissions, so it should ship as a new minor version.
+## [3.2.0] - 2026-11-06
+
+A reliability, privacy and polish release, based on a full code audit. It also brings in four designs from the UX proposals (real favicons, search up front, a current-tab-first popup and import-first onboarding). It adds the `unlimitedStorage`, `favicon` and `search` permissions.
 
 ### Added
 
@@ -140,5 +142,6 @@ A reliability, privacy and polish release, based on a full code audit. It also b
 
 - First version of Tabora.
 
-[Unreleased]: https://github.com/mehmoodulhaq570/tabora/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/mehmoodulhaq570/tabora/compare/v3.2.0...HEAD
+[3.2.0]: https://github.com/mehmoodulhaq570/tabora/releases/tag/v3.2.0
 [3.1.0]: https://github.com/mehmoodulhaq570/tabora/releases/tag/v3.1.0
