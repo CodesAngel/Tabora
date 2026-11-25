@@ -19,7 +19,7 @@
       <div id="searchPanel" class="floating-search" role="search" hidden>
         <div class="search-input-row">
           <span class="icon-search" aria-hidden="true"></span>
-          <label class="visually-hidden" for="globalSearch">Search boards, links, or URLs</label>
+          <label class="visually-hidden" for="globalSearch">Search boards, links, or URLs on every page</label>
           <input id="globalSearch" type="search" placeholder="Search bookmarks" autocomplete="off" aria-controls="searchResults" aria-describedby="searchResultsSummary">
           <button id="clearSearch" class="plain-icon-button" type="button" aria-label="Clear search" hidden>&times;</button>
         </div>
@@ -36,6 +36,13 @@
           <p id="onboardingDescription">Create a board to collect links for a project, topic, or routine.</p>
         </div>
         <div id="onboardingActions" class="onboarding-actions"></div>
+      </section>
+
+      <section id="hintStrip" class="hint-strip" aria-label="Tip" hidden>
+        <span class="hint-label">Tip</span>
+        <p id="hintText"></p>
+        <button id="hintAction" class="hint-action" type="button" hidden></button>
+        <button id="hintDismiss" class="hint-dismiss" type="button" aria-label="Dismiss this tip" title="Dismiss this tip"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
       </section>
 
       <section id="recentStrip" class="recent-strip" aria-labelledby="recentStripTitle" hidden>
@@ -103,15 +110,18 @@
       </form>
     </dialog>
 
-    <dialog id="deleteConfirmDialog" class="app-dialog delete-confirm-dialog" aria-labelledby="deleteConfirmTitle">
+    <dialog id="deleteConfirmDialog" class="app-dialog delete-confirm-dialog" data-tone="trash" aria-labelledby="deleteConfirmTitle" aria-describedby="deleteConfirmPrompt">
       <div class="delete-confirm-content">
-        <h2 id="deleteConfirmTitle">Move to Trash</h2>
-        <p id="deleteConfirmPrompt"></p>
-        <div id="deleteConfirmWarning" class="delete-confirm-warning"></div>
-        <strong id="deleteConfirmCaution" class="delete-confirm-caution">This action cannot be undone.</strong>
+        <span class="delete-confirm-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6"></path></svg></span>
+        <div class="delete-confirm-copy">
+          <h2 id="deleteConfirmTitle">Move to Trash</h2>
+          <p id="deleteConfirmPrompt"></p>
+          <p id="deleteConfirmWarning" class="delete-confirm-warning"></p>
+          <p id="deleteConfirmCaution" class="delete-confirm-caution"></p>
+        </div>
         <footer class="delete-confirm-actions">
-          <button id="deleteConfirmCancel" class="delete-confirm-cancel" type="button">Cancel</button>
-          <button id="deleteConfirmSubmit" class="delete-confirm-submit" type="button">Delete</button>
+          <button id="deleteConfirmCancel" class="secondary-button" type="button">Cancel</button>
+          <button id="deleteConfirmSubmit" class="delete-confirm-submit" type="button">Move to Trash</button>
         </footer>
       </div>
     </dialog>
@@ -122,22 +132,26 @@
         <div class="import-options">
           <button class="import-option" type="button" data-import="bookmarks"><svg class="option-svg-icon icon-amber" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5A2.5 2.5 0 0 1 8.5 2H19v17H8.5A2.5 2.5 0 0 0 6 21.5v-17Z"></path><path d="M6 19V4.5A2.5 2.5 0 0 0 3.5 2H3v17h3ZM13 6v7l2-1.4 2 1.4V6"></path></svg><strong>Browser bookmarks</strong><small>Copy folders and bookmarks from your browser</small></button>
           <button class="import-option" type="button" data-import="window"><svg class="option-svg-icon icon-blue" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 8h18M7 6h.01M10 6h.01"></path></svg><strong>Current window</strong><small>Turn every open tab into one board</small></button>
-          <button class="import-option" type="button" data-import="text"><svg class="option-svg-icon icon-green" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 4V2h6v2M8 9h8M8 13h8M8 17h5"></path></svg><strong>Paste links</strong><small>One URL per line, optionally title | URL</small></button>
+          <button class="import-option" type="button" data-import="text" aria-pressed="false"><svg class="option-svg-icon icon-green" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 4V2h6v2M8 9h8M8 13h8M8 17h5"></path></svg><strong>Paste links</strong><small>One URL per line, optionally title | URL</small></button>
           <label class="import-option file-option"><svg class="option-svg-icon icon-purple" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l4 4v16H6V2Z"></path><path d="M14 2v5h5M9 12h6M9 16h6"></path></svg><strong>Upload a file</strong><small>Tabora, backup, HTML, CSV, or text</small><input id="importFile" type="file" accept=".tabora,.json,.html,.htm,.csv,.txt"></label>
         </div>
         <div id="textImportPanel" class="text-import-panel" hidden>
-          <label for="importText">Links to import</label>
-          <textarea id="importText" class="dark-input" placeholder="Documentation | https://example.com/docs&#10;https://another.example"></textarea>
-          <div class="dialog-footer"><button id="confirmTextImport" class="accent-button" type="button">Import links</button></div>
+          <label for="importText">Paste one link per line. Add a title first if you like: <code>Title | https://…</code></label>
+          <textarea id="importText" class="dark-input" rows="7" spellcheck="false" placeholder="Documentation | https://example.com/docs&#10;https://another.example" aria-describedby="importTextStatus"></textarea>
+          <div class="text-import-footer">
+            <p id="importTextStatus" class="import-text-status" aria-live="polite">No links yet.</p>
+            <button id="confirmTextImport" class="accent-button" type="button" disabled>Review links</button>
+          </div>
         </div>
         <div id="importPreview" class="import-preview" hidden>
-          <div><span class="eyebrow">Ready to import</span><h3 id="importPreviewTitle" aria-live="polite"></h3><p id="importPreviewDetails"></p></div>
+          <div class="import-preview-summary"><span class="eyebrow">Ready to import</span><h3 id="importPreviewTitle" aria-live="polite"></h3><p id="importPreviewDetails"></p><p id="importDestination" class="import-destination"></p></div>
           <div id="importSelectionActions" class="import-selection-actions" hidden>
             <span>Select bookmark boards or expand them to choose individual links.</span>
             <div><button id="selectAllImports" class="text-button" type="button">Select all</button><button id="clearImportSelection" class="text-button" type="button">Clear</button></div>
           </div>
           <div id="importPreviewBoards" class="preview-board-list"></div>
-          <div class="dialog-footer"><button id="cancelImportPreview" class="secondary-button" type="button">Back</button><button id="commitImport" class="accent-button" type="button">Import selected and fetch details</button></div>
+          <label id="importFetchOption" class="import-fetch-option"><input id="importFetchDetails" type="checkbox" checked><span><strong>Fetch titles and icons</strong><small>Visits each page once. Tabora asks for site access the first time.</small></span></label>
+          <div class="dialog-footer"><button id="cancelImportPreview" class="secondary-button" type="button">Back</button><button id="commitImport" class="accent-button" type="button">Import</button></div>
         </div>
       </form>
     </dialog>
@@ -192,6 +206,7 @@
               <label class="setting-row"><span><strong>Hide extra bookmarks in long boards</strong><small>Show the first six bookmarks until the board is opened.</small></span><input type="checkbox" data-setting="hideExtraBookmarks"><i></i></label>
               <label class="setting-row"><span><strong>Shorten long titles</strong><small>Keep long bookmark titles on one line.</small></span><input type="checkbox" data-setting="shortenLongTitles"><i></i></label>
               <label class="setting-row"><span><strong>Show recently opened</strong><small>List the links you opened last above your boards.</small></span><input type="checkbox" data-setting="showRecentlyOpened"><i></i></label>
+              <label class="setting-row"><span><strong>Show tips</strong><small>Point out one feature at a time until you have tried it.</small></span><input type="checkbox" data-setting="showHints"><i></i></label>
             </fieldset>
             <fieldset class="settings-group">
               <legend>Behavior</legend>
@@ -209,12 +224,11 @@
               <button class="feature-action" type="button" data-open-feature="organize"><strong>Link health</strong><span>Find broken and redirected links</span></button>
               <button class="feature-action" type="button" data-open-feature="organize"><strong>Smart organize</strong><span>Sort this page's links by topic</span></button>
               <button class="feature-action" type="button" data-open-feature="spaces"><strong>Moods</strong><span>Save a page with its theme and wallpaper</span></button>
-              <button class="feature-action" type="button" data-open-feature="knowledge"><strong>Knowledge graph</strong><span>Map this page's boards and sites</span></button>
               <button class="feature-action" type="button" data-open-feature="vaults"><strong>Vaults</strong><span>Lock a page behind a password</span></button>
               <button class="feature-action" type="button" data-open-feature="rooms"><strong>Rooms</strong><span>Share a page as an encrypted package</span></button>
               <button class="feature-action" type="button" data-open-feature="overview"><strong>Undo and sessions</strong><span>Undo the last change or save this window</span></button>
             </div>
-            <p class="settings-tool-hint">These also live behind the sparkle icon in the right-hand toolbar.</p>
+            <p class="settings-tool-hint">Each opens Workspace tools, also available from the sparkle icon in the right-hand toolbar.</p>
           </section>
           <section class="settings-view" data-view="account">
             <h2>Account</h2><div class="settings-info"><strong>Your Tabora is local</strong><p>No account is required. Pages, boards, links, and preferences stay in this browser profile.</p><button id="exportTaboraData" class="secondary-button" type="button">Export Tabora data</button></div>
@@ -229,50 +243,82 @@
     <dialog id="featureDialog" class="settings-dialog feature-dialog" aria-labelledby="featureDialogTitle">
       <div class="feature-layout">
         <aside class="feature-sidebar">
-          <h2 id="featureDialogTitle">Workspace Tools</h2>
-          <nav aria-label="Workspace tools sections">
-            <button class="feature-nav-button active" type="button" data-feature-view="overview">Overview</button>
-            <button class="feature-nav-button" type="button" data-feature-view="activity">Activity</button>
-            <button class="feature-nav-button" type="button" data-feature-view="organize">Organize</button>
-            <button class="feature-nav-button" type="button" data-feature-view="spaces">Spaces</button>
-            <button class="feature-nav-button" type="button" data-feature-view="knowledge">Knowledge</button>
-            <button class="feature-nav-button" type="button" data-feature-view="vaults">Vaults</button>
-            <button class="feature-nav-button" type="button" data-feature-view="rooms">Rooms</button>
+          <h2 id="featureDialogTitle">Workspace tools</h2>
+          <nav aria-label="Workspace tools">
+            <button class="feature-nav-button active" type="button" data-feature-view="overview"><svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"></rect><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"></rect><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"></rect></svg><span>Overview</span></button>
+            <button class="feature-nav-button" type="button" data-feature-view="activity"><svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg><span>Recently opened</span></button>
+            <button class="feature-nav-button" type="button" data-feature-view="organize"><svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 5 12 2.5-6h4"></path></svg><span>Link health</span></button>
+            <button class="feature-nav-button" type="button" data-feature-view="spaces"><svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5c0-1.6-1.2-2-2.4-2H16a2 2 0 0 1-2-2V6c0-1.6-.6-2.5-2-2.5Z"></path><circle cx="7.5" cy="11.5" r="1"></circle><circle cx="10.5" cy="7.5" r="1"></circle></svg><span>Moods</span></button>
+            <button class="feature-nav-button" type="button" data-feature-view="vaults"><svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5M12 14.5v2"></path></svg><span>Vaults</span></button>
+            <button class="feature-nav-button" type="button" data-feature-view="rooms"><svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="17.5" cy="5.5" r="2.5"></circle><circle cx="6.5" cy="12" r="2.5"></circle><circle cx="17.5" cy="18.5" r="2.5"></circle><path d="m8.7 13.3 6.6 3.9M15.3 6.8l-6.6 3.9"></path></svg><span>Rooms</span></button>
           </nav>
         </aside>
         <div class="feature-content">
           <button class="dialog-close settings-close" type="button" data-close-dialog="featureDialog" aria-label="Close">&times;</button>
           <section class="feature-view active" data-feature-section="overview">
-            <h2>Overview</h2>
-            <div class="feature-action-grid">
-              <button id="featureSaveSession" class="feature-action" type="button"><strong>Save Current Session</strong><span>Current window</span></button>
-              <button id="featureUndo" class="feature-action" type="button"><strong>Undo Last Change</strong><span id="featureUndoLabel">Nothing to undo</span></button>
+            <header class="feature-view-header"><h2>Overview</h2><p>Quick actions, and the tools that keep your links healthy, private and easy to share.</p></header>
+            <div class="feature-quick-actions">
+              <button id="featureSaveSession" class="feature-quick-action" type="button"><svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2"></rect><path d="M3 8.5h18M12 11.5v5M9.5 14h5"></path></svg><span><strong>Save this window</strong><small>Every open tab becomes one board</small></span></button>
+              <button id="featureUndo" class="feature-quick-action" type="button"><svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14.5 4.5 10 9 5.5"></path><path d="M4.5 10H15a4.5 4.5 0 0 1 0 9h-3"></path></svg><span><strong>Undo last change</strong><small id="featureUndoLabel">Nothing to undo</small></span></button>
+            </div>
+            <h3 class="feature-subheading">Tools</h3>
+            <div class="feature-tool-grid">
+              <button class="feature-tool-card" type="button" data-feature-goto="activity"><span class="feature-tool-icon"><svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></span><span class="feature-tool-copy"><strong>Recently opened</strong><small>Every link you opened, newest first.</small><em id="featureStatus-activity" class="feature-tool-status"></em></span></button>
+              <button class="feature-tool-card" type="button" data-feature-goto="organize"><span class="feature-tool-icon"><svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 5 12 2.5-6h4"></path></svg></span><span class="feature-tool-copy"><strong>Link health</strong><small>Find broken links and links that moved, or sort a page by topic.</small><em id="featureStatus-organize" class="feature-tool-status"></em></span></button>
+              <button class="feature-tool-card" type="button" data-feature-goto="spaces"><span class="feature-tool-icon"><svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5c0-1.6-1.2-2-2.4-2H16a2 2 0 0 1-2-2V6c0-1.6-.6-2.5-2-2.5Z"></path><circle cx="7.5" cy="11.5" r="1"></circle><circle cx="10.5" cy="7.5" r="1"></circle></svg></span><span class="feature-tool-copy"><strong>Moods</strong><small>Save a page with its theme and wallpaper and switch back in one click.</small><em id="featureStatus-spaces" class="feature-tool-status"></em></span></button>
+              <button class="feature-tool-card" type="button" data-feature-goto="vaults"><span class="feature-tool-icon"><svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"></rect><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5M12 14.5v2"></path></svg></span><span class="feature-tool-copy"><strong>Vaults</strong><small>Lock a page behind a password. It is hidden until you unlock it.</small><em id="featureStatus-vaults" class="feature-tool-status"></em></span></button>
+              <button class="feature-tool-card" type="button" data-feature-goto="rooms"><span class="feature-tool-icon"><svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="17.5" cy="5.5" r="2.5"></circle><circle cx="6.5" cy="12" r="2.5"></circle><circle cx="17.5" cy="18.5" r="2.5"></circle><path d="m8.7 13.3 6.6 3.9M15.3 6.8l-6.6 3.9"></path></svg></span><span class="feature-tool-copy"><strong>Rooms</strong><small>Share a page as an encrypted package that expires in 24 hours.</small><em id="featureStatus-rooms" class="feature-tool-status"></em></span></button>
             </div>
           </section>
-          <section class="feature-view" data-feature-section="activity"><h2>Recently Opened</h2><div id="recentActivity" class="feature-list"></div></section>
+          <section class="feature-view" data-feature-section="activity">
+            <header class="feature-view-header"><h2>Recently opened</h2><p>The last 20 links you opened from Tabora, newest first.</p></header>
+            <div id="recentActivity" class="feature-list"></div>
+          </section>
           <section class="feature-view" data-feature-section="organize">
-            <h2>Organize</h2>
-            <div class="feature-action-grid"><button id="checkLinks" class="feature-action" type="button"><strong>Check Links</strong><span>Health and redirects</span></button><button id="smartOrganize" class="feature-action" type="button"><strong>Smart Organization</strong><span>Current page</span></button></div>
+            <header class="feature-view-header"><h2>Link health</h2><p>Check every saved link, or tidy the page you're on into topic boards.</p></header>
+            <div class="feature-action-grid">
+              <button id="checkLinks" class="feature-action" type="button"><svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 5 12 2.5-6h4"></path></svg><strong>Check every link</strong><span>Finds pages that are gone or have moved. Tabora asks for site access the first time.</span></button>
+              <button id="smartOrganize" class="feature-action" type="button"><svg class="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h16M4 12h10M4 17.5h6"></path></svg><strong>Organize this page by topic</strong><span id="smartOrganizeDetail">Groups links into boards like Reading or Development. You can undo it.</span></button>
+            </div>
             <div id="organizeResults" class="feature-list"></div>
           </section>
           <section class="feature-view" data-feature-section="spaces">
-            <h2>Mood Spaces</h2>
-            <form id="moodForm" class="feature-inline-form"><input id="moodName" class="dark-input" maxlength="40" placeholder="Deep Work" required><button class="accent-button" type="submit">Save Current Space</button></form>
+            <header class="feature-view-header"><h2>Moods</h2><p>A mood remembers the page you're on with its theme, wallpaper, blur and private-opening settings, so you can switch back in one click.</p></header>
+            <form id="moodForm" class="feature-inline-form"><label class="visually-hidden" for="moodName">Mood name</label><input id="moodName" class="dark-input" maxlength="40" placeholder="Name this mood, e.g. Deep work" required><button class="accent-button" type="submit">Save mood</button></form>
             <div id="moodList" class="feature-list"></div>
           </section>
-          <section class="feature-view" data-feature-section="knowledge"><h2>Knowledge Graph</h2><div id="knowledgeGraph" class="knowledge-graph"></div></section>
           <section class="feature-view" data-feature-section="vaults">
-            <h2>Private Vaults</h2>
-            <form id="vaultForm" class="feature-form"><select id="vaultPage" class="dark-input"></select><input id="vaultPassword" class="dark-input" type="password" minlength="8" placeholder="Password (8+ characters)" required><button class="accent-button" type="submit">Lock Page</button></form>
+            <header class="feature-view-header"><h2>Vaults</h2><p>Locking a page encrypts it with your password and hides it, with its boards, until you unlock it here.</p></header>
+            <p class="feature-callout">If you forget the password, the page can't be recovered. Tabora never stores it.</p>
+            <form id="vaultForm" class="feature-form">
+              <label class="feature-field"><span>Page</span><select id="vaultPage" class="dark-input"></select></label>
+              <label class="feature-field"><span>Password</span><input id="vaultPassword" class="dark-input" type="password" minlength="8" autocomplete="new-password" placeholder="At least 8 characters" required></label>
+              <button class="accent-button" type="submit">Lock page</button>
+            </form>
+            <h3 class="feature-subheading">Locked pages</h3>
             <div id="vaultList" class="feature-list"></div>
           </section>
           <section class="feature-view" data-feature-section="rooms">
-            <h2>Shared Rooms</h2>
-            <div class="feature-action-grid"><button id="createRoom" class="feature-action" type="button"><strong>Create Room Package</strong><span>Current page, encrypted, expires in 24 hours</span></button></div>
-            <label class="feature-room-code">Room package<textarea id="roomCode" class="dark-input" placeholder="Paste a Tabora room package"></textarea></label>
-            <label class="feature-room-code">Room password<span class="feature-room-password"><input id="roomPassword" class="dark-input" type="text" autocomplete="off" spellcheck="false" placeholder="Enter the password you received"><button id="copyRoomPassword" class="secondary-button" type="button">Copy</button></span></label>
-            <p class="feature-room-hint">Send the package and the password through different channels. Anyone with both can open the room.</p>
-            <button id="joinRoom" class="accent-button" type="button">Join Room</button>
+            <header class="feature-view-header"><h2>Rooms</h2><p>Share a page with someone, or open one they shared with you. Packages are encrypted and expire after 24 hours.</p></header>
+            <div class="feature-room-grid">
+              <section class="feature-room-card" aria-labelledby="roomShareTitle">
+                <h3 id="roomShareTitle">Share this page</h3>
+                <p id="roomShareDetail">Creates an encrypted copy of the page you're on.</p>
+                <button id="createRoom" class="accent-button" type="button">Create package</button>
+                <div id="roomShareOutput" class="feature-room-output" hidden>
+                  <label class="feature-field"><span>Package</span><span class="feature-copy-row"><input id="roomShareCode" class="dark-input mono-input" readonly><button id="copyRoomCode" class="secondary-button" type="button">Copy</button></span></label>
+                  <label class="feature-field"><span>Password</span><span class="feature-copy-row"><input id="roomSharePassword" class="dark-input mono-input" readonly><button id="copyRoomPassword" class="secondary-button" type="button">Copy</button></span></label>
+                  <p class="feature-room-hint">Send the package and the password through different channels. Anyone with both can open the page.</p>
+                </div>
+              </section>
+              <section class="feature-room-card" aria-labelledby="roomJoinTitle">
+                <h3 id="roomJoinTitle">Join a room</h3>
+                <p>Paste the package and password you received. The page is added as a new page.</p>
+                <label class="feature-field"><span>Package</span><textarea id="roomCode" class="dark-input mono-input" rows="3" spellcheck="false" placeholder="TABORA2.…"></textarea></label>
+                <label class="feature-field"><span>Password</span><input id="roomPassword" class="dark-input mono-input" type="text" autocomplete="off" spellcheck="false"></label>
+                <button id="joinRoom" class="secondary-button" type="button">Join room</button>
+              </section>
+            </div>
           </section>
         </div>
       </div>

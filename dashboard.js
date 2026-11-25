@@ -47,6 +47,9 @@ const nodes = {
   onboardingDescription: document.querySelector("#onboardingDescription"),
   onboardingActions: document.querySelector("#onboardingActions"),
   shortcutsDialog: document.querySelector("#shortcutsDialog"),
+  hintStrip: document.querySelector("#hintStrip"),
+  hintText: document.querySelector("#hintText"),
+  hintAction: document.querySelector("#hintAction"),
   recentStrip: document.querySelector("#recentStrip"),
   recentStripList: document.querySelector("#recentStripList"),
   toast: document.querySelector("#toast")
@@ -117,7 +120,7 @@ const ONBOARDING_STEPS = [
     progress: "All set",
     title: "Your workspace is ready",
     description: "Press / to search your bookmarks or the web, Alt+1–9 to switch pages, and ? to see every shortcut.",
-    actions: [{ label: "Show shortcuts", primary: true, run: () => nodes.shortcutsDialog.showModal() }],
+    actions: [{ label: "Show shortcuts", primary: true, run: () => openShortcuts() }],
     dismissLabel: "Done"
   }
 ];
@@ -152,6 +155,7 @@ async function init() {
   // Older versions kept a full extra copy of the state after every import; it was never read.
   void extensionApi.storage.local.remove("taboraLastImportBackup").catch(() => {});
   appState = await getTaboraState();
+  hintsAllowedThisSession = appState.settings.onboardingComplete;
   const requestedPageId = new URLSearchParams(location.search).get("page");
   currentPageId = appState.pages.some((page) => page.id === requestedPageId) ? requestedPageId : appState.settings.activePageId;
   await applyAppearance();
@@ -168,9 +172,13 @@ function setCurrentPage(pageId) {
   boardInsertionPlacement = { column: 0, order: 0 };
 }
 
-function activeBoards() {
-  return ordered(appState.boards.filter((board) => board.pageId === activePage().id))
+function boardsOnPage(pageId) {
+  return ordered(appState.boards.filter((board) => board.pageId === pageId))
     .sort((a, b) => Number(b.pinned) - Number(a.pinned) || (a.order || 0) - (b.order || 0));
+}
+
+function activeBoards() {
+  return boardsOnPage(activePage().id);
 }
 
 function render() {
@@ -179,6 +187,7 @@ function render() {
   renderSearchResults();
   renderToolState();
   renderOnboarding();
+  renderHintStrip();
   renderRecentStrip();
 }
 
@@ -404,6 +413,79 @@ function renderOnboarding() {
   nodes.onboardingCard.hidden = false;
 }
 
+// One tip at a time, for features not used yet. Each tip retires once its feature is used or it is dismissed.
+// Text is split so keys render as <kbd>.
+const HINTS = [
+  {
+    id: "search",
+    text: ["Press ", { key: "/" }, " to search every page at once, or the web."],
+    action: { label: "Try it", run: () => openSearch() }
+  },
+  {
+    id: "popup",
+    text: ["Click Tabora in the browser toolbar to save the tab you are on, or press ", { key: "Ctrl" }, "+", { key: "Shift" }, "+", { key: "Y" }, "."],
+    done: () => Boolean(appState.settings.lastSaveBoardId) || appState.boards.some((board) => board.quickSave)
+  },
+  {
+    id: "pages",
+    text: [{ key: "Alt" }, "+", { key: "1" }, "–", { key: "9" }, " jumps straight to a page."],
+    when: () => appState.pages.length > 1
+  },
+  {
+    id: "tools",
+    text: ["Link health, Smart organize, Moods and more are listed in Settings → Tools."],
+    action: { label: "Show tools", run: () => openSettings("tools") }
+  },
+  {
+    id: "shortcuts",
+    text: ["Press ", { key: "?" }, " any time to see every shortcut."],
+    action: { label: "Show shortcuts", run: () => openShortcuts() }
+  }
+];
+
+// The last onboarding step already covers search and shortcuts, so tips start from the next new tab.
+let hintsAllowedThisSession = false;
+let currentHint = null;
+
+function nextHint() {
+  const settings = appState.settings;
+  if (!hintsAllowedThisSession || !settings.onboardingComplete || !settings.showHints || organizeMode) return null;
+  if (!appState.boards.length) return null;
+  const seen = new Set(settings.hintsSeen);
+  return HINTS.find((hint) => !seen.has(hint.id) && (hint.when?.() ?? true) && !(hint.done?.() ?? false)) || null;
+}
+
+function renderHintStrip() {
+  const hint = nextHint();
+  if (hint === currentHint) return;
+  currentHint = hint;
+  nodes.hintStrip.hidden = !hint;
+  if (!hint) return;
+  nodes.hintText.replaceChildren(...hint.text.map((part) => {
+    if (typeof part === "string") return document.createTextNode(part);
+    const key = document.createElement("kbd");
+    key.textContent = part.key;
+    return key;
+  }));
+  nodes.hintAction.hidden = !hint.action;
+  nodes.hintAction.textContent = hint.action?.label || "";
+}
+
+// Records locally first so the strip updates at once, then saves without a full re-render.
+function markHintSeen(id) {
+  if (appState.settings.hintsSeen.includes(id)) return;
+  appState.settings.hintsSeen = [...appState.settings.hintsSeen, id];
+  renderHintStrip();
+  void updateTaboraState((state) => {
+    if (!state.settings.hintsSeen.includes(id)) state.settings.hintsSeen.push(id);
+  }).catch((error) => console.error("Tabora could not save a dismissed tip", error));
+}
+
+function openShortcuts() {
+  markHintSeen("shortcuts");
+  nodes.shortcutsDialog.showModal();
+}
+
 let recentStripKey = "";
 
 function renderRecentStrip() {
@@ -487,9 +569,10 @@ function importFailureMessage(error) {
   return "Could not import this Tabora shared file.";
 }
 
-function requestDeleteConfirmation({ title, prompt, warning = "", caution = "This action cannot be undone.", compact = false, submitLabel = "Delete" }) {
+// tone: "trash" (reversible, the default), "danger" (permanent) or "neutral" (not a deletion at all).
+function requestDeleteConfirmation({ title, prompt, warning = "", caution = "", tone = "trash", submitLabel = "Move to Trash" }) {
   if (deleteConfirmationResolve) settleDeleteConfirmation(false);
-  nodes.deleteConfirmDialog.classList.toggle("compact", compact);
+  nodes.deleteConfirmDialog.dataset.tone = tone;
   document.querySelector("#deleteConfirmTitle").textContent = title;
   document.querySelector("#deleteConfirmPrompt").textContent = prompt;
   const warningNode = document.querySelector("#deleteConfirmWarning");
@@ -517,6 +600,8 @@ nodes.deleteConfirmDialog.addEventListener("cancel", (event) => {
   settleDeleteConfirmation(false);
 });
 nodes.deleteConfirmDialog.addEventListener("close", () => {
+  // "close" fires a task later; if a new confirmation already reopened the dialog, it isn't ours to cancel.
+  if (nodes.deleteConfirmDialog.open) return;
   if (deleteConfirmationResolve) settleDeleteConfirmation(false);
 });
 
@@ -867,9 +952,10 @@ function boardMenuItems(board) {
   }
   items.push({ separator: true }, { icon: PAGE_MENU_ICONS.delete, label: "Delete board", danger: true, action: async () => {
     const confirmed = await requestDeleteConfirmation({
-      title: "Move to Trash",
-      prompt: `Move "${board.name}" to trash?`,
-      warning: `The board and its ${board.links.length} ${board.links.length === 1 ? "bookmark" : "bookmarks"} will be moved to trash. You can restore them within 30 days.`
+      title: `Move "${board.name}" to Trash?`,
+      prompt: board.links.length
+        ? `The board and its ${countLabel(board.links.length, "bookmark")} go to Trash. You can restore them for 30 days.`
+        : "This empty board goes to Trash. You can restore it for 30 days."
     });
     if (!confirmed) return;
     await deleteBoard(board.id);
@@ -988,11 +1074,11 @@ function pageMenuItems(page) {
       if (page.protected) { showToast("The Home page cannot be deleted"); return; }
       const boardCount = appState.boards.filter((board) => board.pageId === page.id).length;
       const confirmed = await requestDeleteConfirmation({
-        title: `Delete "${page.name}"?`,
-        prompt: `This will move the page and all ${boardCount} ${boardCount === 1 ? "board" : "boards"} to trash. You can restore them within 30 days.`,
-        warning: "",
-        caution: "",
-        compact: true
+        title: `Delete the "${page.name}" page?`,
+        prompt: boardCount
+          ? `Its ${boardCount === 1 ? "board goes" : `${boardCount} boards go`} to Trash. You can restore ${boardCount === 1 ? "it" : "them"} for 30 days.`
+          : "The page is empty, so nothing goes to Trash.",
+        submitLabel: "Delete page"
       });
       if (!confirmed) return;
       await deletePage(page.id);
@@ -1152,9 +1238,8 @@ nodes.boardGrid.addEventListener("click", async (event) => {
     const link = board?.links.find((item) => item.id === deleteLinkButton.dataset.deleteLink);
     if (!board || !link) return;
     const confirmed = await requestDeleteConfirmation({
-      title: "Move to Trash",
-      prompt: `Move "${link.title}" to trash?`,
-      warning: "This bookmark will be moved to trash. You can restore it within 30 days."
+      title: "Move bookmark to Trash?",
+      prompt: `"${link.title}" goes to Trash. You can restore it for 30 days.`
     });
     if (!confirmed) return;
     await deleteLink(deleteLinkButton.dataset.boardId, deleteLinkButton.dataset.deleteLink);
@@ -1268,19 +1353,35 @@ const headerSearch = document.querySelector("#headerSearch");
 const clearSearchButton = document.querySelector("#clearSearch");
 const MAX_SEARCH_RESULTS = 60;
 
+// Searches every page. The current page comes first so Enter still opens what you see on screen.
 function matchingSearchLinks(query) {
   const normalizedQuery = String(query || "").trim().toLowerCase();
   if (!normalizedQuery) return [];
+  const current = activePage();
+  const pages = [current, ...ordered(appState.pages).filter((page) => page.id !== current.id)];
   const matches = [];
-  for (const board of activeBoards()) {
-    const boardMatchesQuery = board.name.toLowerCase().includes(normalizedQuery);
-    for (const link of ordered(board.links)) {
-      const linkMatchesQuery = [link.title, link.url, link.note]
-        .some((value) => String(value || "").toLowerCase().includes(normalizedQuery));
-      if (boardMatchesQuery || linkMatchesQuery) matches.push({ board, link });
+  for (const page of pages) {
+    const pageMatchesQuery = String(page.name || "").toLowerCase().includes(normalizedQuery);
+    for (const board of boardsOnPage(page.id)) {
+      const boardMatchesQuery = pageMatchesQuery || board.name.toLowerCase().includes(normalizedQuery);
+      for (const link of ordered(board.links)) {
+        const linkMatchesQuery = [link.title, link.url, link.note]
+          .some((value) => String(value || "").toLowerCase().includes(normalizedQuery));
+        if (boardMatchesQuery || linkMatchesQuery) matches.push({ page, board, link, otherPage: page.id !== current.id });
+      }
     }
   }
   return matches;
+}
+
+function searchSummary(matches) {
+  const shown = Math.min(matches.length, MAX_SEARCH_RESULTS);
+  const count = matches.length > MAX_SEARCH_RESULTS
+    ? `Showing ${shown} of ${matches.length} matching links`
+    : `${matches.length} matching ${matches.length === 1 ? "link" : "links"}`;
+  const elsewhere = matches.filter((match) => match.otherPage).length;
+  if (!elsewhere) return count;
+  return elsewhere === matches.length ? `${count}, all on other pages` : `${count} · ${elsewhere} on other pages`;
 }
 
 function renderSearchResults() {
@@ -1294,15 +1395,13 @@ function renderSearchResults() {
 
   const matches = matchingSearchLinks(query);
   const visibleMatches = matches.slice(0, MAX_SEARCH_RESULTS);
-  nodes.searchResultsSummary.textContent = matches.length > MAX_SEARCH_RESULTS
-    ? `Showing ${MAX_SEARCH_RESULTS} of ${matches.length} matching links`
-    : `${matches.length} matching ${matches.length === 1 ? "link" : "links"}`;
+  nodes.searchResultsSummary.textContent = searchSummary(matches);
 
   if (!matches.length) {
     const empty = document.createElement("li");
     empty.className = "search-results-empty";
     const title = document.createElement("strong");
-    title.textContent = "No matching links";
+    title.textContent = "No matching links on any page";
     const hint = document.createElement("span");
     hint.textContent = "Try a different title, board, domain, or URL.";
     empty.append(title, hint);
@@ -1310,7 +1409,7 @@ function renderSearchResults() {
     return;
   }
 
-  for (const { board, link } of visibleMatches) {
+  for (const { page, board, link, otherPage } of visibleMatches) {
     const item = document.createElement("li");
     item.className = "search-result-item";
     const anchor = document.createElement("a");
@@ -1330,7 +1429,9 @@ function renderSearchResults() {
 
     const boardName = document.createElement("span");
     boardName.className = "search-result-board";
-    boardName.textContent = board.name;
+    boardName.textContent = otherPage ? `${page.name} / ${board.name}` : board.name;
+    if (otherPage) boardName.classList.add("is-other-page");
+    boardName.title = `${page.name} / ${board.name}`;
     anchor.append(copy, boardName);
     item.append(anchor);
     nodes.searchResultsList.append(item);
@@ -1383,6 +1484,7 @@ function syncSearchState() {
 }
 
 function openSearch() {
+  markHintSeen("search");
   closeAppearancePanel();
   hideContextMenu();
   nodes.searchPanel.hidden = false;
@@ -1517,9 +1619,8 @@ document.querySelector("#organizeDelete").addEventListener("click", async () => 
   if (!selectedOrganizeLinks.size) return;
   const selectedCount = selectedOrganizeLinks.size;
   const confirmed = await requestDeleteConfirmation({
-    title: "Move to Trash",
-    prompt: `Move ${selectedCount} selected ${selectedCount === 1 ? "bookmark" : "bookmarks"} to trash?`,
-    warning: `${selectedCount === 1 ? "This bookmark" : "These bookmarks"} will be moved to trash. You can restore ${selectedCount === 1 ? "it" : "them"} within 30 days.`
+    title: `Move ${countLabel(selectedCount, "bookmark")} to Trash?`,
+    prompt: `You can restore ${selectedCount === 1 ? "it" : "them"} from Trash for 30 days.`
   });
   if (!confirmed) return;
   await updateTaboraState((state) => {
@@ -1574,25 +1675,57 @@ function toggleAppearancePanel() {
 }
 
 document.querySelector("#wallpaperTool").addEventListener("click", toggleAppearancePanel);
-document.querySelector("#settingsTool").addEventListener("click", () => {
+function openSettings(view = "") {
   closeAppearancePanel();
   renderSettings();
+  if (view) document.querySelector(`[data-settings-view="${view}"]`)?.click();
   nodes.settingsDialog.showModal();
-});
+}
+
+document.querySelector("#settingsTool").addEventListener("click", () => openSettings());
 document.querySelector("#moreToolsTool").addEventListener("click", () => {
   document.querySelector(".tool-rail").classList.toggle("tools-expanded");
 });
-document.querySelector("#importTool").addEventListener("click", () => {
-  nodes.textImportPanel.hidden = true;
-  nodes.importPreview.hidden = true;
-  document.querySelector(".import-options").hidden = false;
+// Back to the four source cards with nothing pending.
+function resetImportDialog({ keepText = false } = {}) {
   pendingImportGroups = [];
   pendingTaboraPackage = null;
   selectiveBookmarkImport = false;
   selectedImportUrls.clear();
   expandedImportGroups.clear();
-  document.querySelector("#commitImport").textContent = "Import and fetch details";
-  document.querySelector("#commitImport").disabled = false;
+  nodes.importPreview.hidden = true;
+  document.querySelector(".import-options").hidden = false;
+  if (!keepText) {
+    nodes.importText.value = "";
+    showTextImportPanel(false);
+  }
+  updateTextImportStatus();
+  const commit = document.querySelector("#commitImport");
+  commit.textContent = "Import";
+  commit.disabled = false;
+}
+
+function showTextImportPanel(show) {
+  nodes.textImportPanel.hidden = !show;
+  document.querySelector('[data-import="text"]').setAttribute("aria-pressed", String(show));
+  if (show) nodes.importText.focus();
+}
+
+function updateTextImportStatus() {
+  const lines = nodes.importText.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const found = parseTextLinks(nodes.importText.value).length;
+  const skipped = lines.length - found;
+  const status = document.querySelector("#importTextStatus");
+  status.textContent = !lines.length ? "No links yet."
+    : `${countLabel(found, "link")} found${skipped ? ` · ${countLabel(skipped, "line")} skipped (not a web address)` : ""}`;
+  status.classList.toggle("is-warning", Boolean(lines.length) && !found);
+  const button = document.querySelector("#confirmTextImport");
+  button.disabled = !found;
+  button.textContent = found ? `Review ${countLabel(found, "link")}` : "Review links";
+}
+
+document.querySelector("#importTool").addEventListener("click", () => {
+  resetImportDialog();
   nodes.importDialog.showModal();
 });
 document.querySelector("#trashTool").addEventListener("click", () => {
@@ -1810,14 +1943,16 @@ function updateImportSelectionState() {
   const selectionActions = document.querySelector("#importSelectionActions");
   const commitButton = document.querySelector("#commitImport");
   title.textContent = selectiveBookmarkImport
-    ? `${selectedTotal} of ${availableTotal} links selected in ${visibleGroups} ${visibleGroups === 1 ? "board" : "boards"}`
-    : `${selectedTotal} links in ${visibleGroups} ${visibleGroups === 1 ? "board" : "boards"}`;
+    ? `${selectedTotal} of ${availableTotal} links selected in ${countLabel(visibleGroups, "board")}`
+    : `${countLabel(selectedTotal, "link")} in ${countLabel(visibleGroups, "board")}`;
   details.textContent = pendingImportSkippedCount
-    ? `${pendingImportSkippedCount} duplicate or invalid ${pendingImportSkippedCount === 1 ? "link" : "links"} will be skipped.`
+    ? `${countLabel(pendingImportSkippedCount, "link")} already in Tabora or not valid will be skipped.`
     : "No duplicates found.";
+  document.querySelector("#importDestination").textContent = `${visibleGroups === 1 ? "A new board" : "New boards"} will be added to the ${activePage().name} page.`;
+  document.querySelector("#importFetchOption").hidden = false;
   selectionActions.hidden = !selectiveBookmarkImport;
-  commitButton.disabled = selectiveBookmarkImport && selectedTotal === 0;
-  commitButton.textContent = selectiveBookmarkImport ? "Import selected and fetch details" : "Import and fetch details";
+  commitButton.disabled = selectedTotal === 0;
+  commitButton.textContent = selectedTotal ? `Import ${countLabel(selectedTotal, "link")}` : "Import";
 
   if (!selectiveBookmarkImport) return;
   for (const [groupIndex, group] of pendingImportGroups.entries()) {
@@ -1827,7 +1962,7 @@ function updateImportSelectionState() {
       groupCheckbox.checked = selectedCount === group.links.length;
       groupCheckbox.indeterminate = selectedCount > 0 && selectedCount < group.links.length;
       const count = groupCheckbox.nextElementSibling?.querySelector("span");
-      if (count) count.textContent = selectedCount ? `${selectedCount} of ${group.links.length} selected` : `${group.links.length} links`;
+      if (count) count.textContent = selectedCount ? `${selectedCount} of ${group.links.length} selected` : countLabel(group.links.length, "link");
     }
     for (const [linkIndex, link] of group.links.entries()) {
       const checkbox = document.querySelector(`[data-import-link-group="${groupIndex}"][data-import-link="${linkIndex}"]`);
@@ -1843,10 +1978,17 @@ function renderImportPreview() {
   for (const [groupIndex, group] of pendingImportGroups.entries()) {
     if (!selectiveBookmarkImport) {
       const row = document.createElement("div");
-      row.className = "preview-board-row";
-      row.innerHTML = "<strong></strong><span></span>";
-      setText(row, "strong", group.name);
-      setText(row, "span", `${group.links.length} links`);
+      row.className = "preview-board-row is-editable";
+      const name = document.createElement("input");
+      name.className = "preview-board-name";
+      name.value = group.name;
+      name.maxLength = 60;
+      name.setAttribute("aria-label", "Board name");
+      name.title = "Click to rename";
+      name.dataset.importGroupName = String(groupIndex);
+      const count = document.createElement("span");
+      count.textContent = countLabel(group.links.length, "link");
+      row.append(name, count);
       list.append(row);
       continue;
     }
@@ -1882,7 +2024,7 @@ function renderImportPreview() {
     const name = document.createElement("strong");
     name.textContent = group.name;
     const count = document.createElement("span");
-    count.textContent = groupSelectedCount ? `${groupSelectedCount} of ${group.links.length} selected` : `${group.links.length} links`;
+    count.textContent = groupSelectedCount ? `${groupSelectedCount} of ${group.links.length} selected` : countLabel(group.links.length, "link");
     label.append(name, count);
     row.append(toggle, checkbox, label);
 
@@ -1936,9 +2078,9 @@ function prepareImport(groups, { selectable = false } = {}) {
   })).filter((group) => group.links.length);
 
   const total = pendingImportGroups.reduce((sum, group) => sum + group.links.length, 0);
-  if (!total) { showToast("No new links were found; duplicates were skipped"); return; }
+  if (!total) { showToast("No new links found. Links already in Tabora are skipped.", "warning"); return; }
   if (!selectable) for (const group of pendingImportGroups) for (const link of group.links) selectedImportUrls.add(link.url);
-  nodes.textImportPanel.hidden = true;
+  showTextImportPanel(false);
   document.querySelector(".import-options").hidden = true;
   nodes.importPreview.hidden = false;
   renderImportPreview();
@@ -1953,14 +2095,17 @@ function prepareTaboraPackageImport(taboraPackage) {
   pendingImportSkippedCount = 0;
   const boards = taboraPackage.type === "board" ? [taboraPackage.board] : taboraPackage.boards;
   const total = boards.reduce((count, board) => count + board.links.length, 0);
-  nodes.textImportPanel.hidden = true;
+  showTextImportPanel(false);
   document.querySelector(".import-options").hidden = true;
   nodes.importPreview.hidden = false;
   document.querySelector("#importSelectionActions").hidden = true;
-  document.querySelector("#importPreviewTitle").textContent = `${boards.length} shared ${boards.length === 1 ? "board" : "boards"} with ${total} ${total === 1 ? "link" : "links"}`;
-  document.querySelector("#importPreviewDetails").textContent = taboraPackage.type === "page"
-    ? `A new page named "${taboraPackage.page.name}" will be added to Tabora.`
-    : `This board will be added to the current page, "${activePage().name}".`;
+  document.querySelector("#importPreviewTitle").textContent = `${boards.length} shared ${boards.length === 1 ? "board" : "boards"} with ${countLabel(total, "link")}`;
+  document.querySelector("#importPreviewDetails").textContent = "Shared files are copied in full, including links you already have.";
+  document.querySelector("#importDestination").textContent = taboraPackage.type === "page"
+    ? `A new page named "${taboraPackage.page.name}" will be added.`
+    : `The board will be added to the ${activePage().name} page.`;
+  document.querySelector("#importFetchOption").hidden = true;
+  document.querySelector("#commitImport").disabled = false;
   const list = document.querySelector("#importPreviewBoards");
   list.innerHTML = "";
   for (const board of boards) {
@@ -1968,7 +2113,7 @@ function prepareTaboraPackageImport(taboraPackage) {
     row.className = "preview-board-row";
     row.innerHTML = "<strong></strong><span></span>";
     setText(row, "strong", board.name);
-    setText(row, "span", `${board.links.length} links`);
+    setText(row, "span", countLabel(board.links.length, "link"));
     list.append(row);
   }
   document.querySelector("#commitImport").textContent = taboraPackage.type === "page" ? "Import page" : "Import board";
@@ -2049,10 +2194,16 @@ document.querySelector(".import-options").addEventListener("click", async (event
     const links = tabs.filter((tab) => normalizeUrl(tab.url)).map((tab) => ({ title: tab.title, url: tab.url, favIconUrl: tab.favIconUrl || "" }));
     prepareImport([{ name: "Current Window", links }]);
   }
-  if (option.dataset.import === "text") { nodes.textImportPanel.hidden = false; nodes.importText.focus(); }
+  if (option.dataset.import === "text") showTextImportPanel(nodes.textImportPanel.hidden);
 });
 
-document.querySelector("#confirmTextImport").addEventListener("click", () => prepareImport([{ name: "Imported Links", links: parseTextLinks(nodes.importText.value) }]));
+nodes.importText.addEventListener("input", updateTextImportStatus);
+document.querySelector("#confirmTextImport").addEventListener("click", () => prepareImport([{ name: "Pasted links", links: parseTextLinks(nodes.importText.value) }]));
+document.querySelector("#importPreviewBoards").addEventListener("input", (event) => {
+  const input = event.target.closest("[data-import-group-name]");
+  const group = input && pendingImportGroups[Number(input.dataset.importGroupName)];
+  if (group) group.name = input.value;
+});
 
 document.querySelector("#importFile").addEventListener("change", async (event) => {
   const file = event.target.files[0];
@@ -2093,11 +2244,12 @@ async function importBackupFile(text) {
   }
   const linkCount = backup.boards.reduce((count, board) => count + board.links.length, 0);
   const confirmed = await requestDeleteConfirmation({
-    title: "Restore backup",
-    prompt: `Restore ${backup.pages.length} ${backup.pages.length === 1 ? "page" : "pages"}, ${backup.boards.length} ${backup.boards.length === 1 ? "board" : "boards"}, and ${linkCount} ${linkCount === 1 ? "link" : "links"} from this backup?`,
-    warning: "Your current pages, boards, trash, and preferences will be replaced by the backup.",
-    caution: "You can undo this change.",
-    submitLabel: "Restore"
+    title: "Restore this backup?",
+    prompt: `It contains ${countLabel(backup.pages.length, "page")}, ${countLabel(backup.boards.length, "board")} and ${countLabel(linkCount, "link")}.`,
+    warning: "Your current pages, boards, trash and preferences will be replaced.",
+    caution: "You can undo this right after.",
+    tone: "neutral",
+    submitLabel: "Restore backup"
   });
   if (!confirmed) return;
   try {
@@ -2112,16 +2264,11 @@ async function importBackupFile(text) {
   }
 }
 
+// Back keeps pasted text so a typo can be fixed without starting over.
 document.querySelector("#cancelImportPreview").addEventListener("click", () => {
-  pendingTaboraPackage = null;
-  pendingImportGroups = [];
-  selectiveBookmarkImport = false;
-  selectedImportUrls.clear();
-  expandedImportGroups.clear();
-  nodes.importPreview.hidden = true;
-  document.querySelector(".import-options").hidden = false;
-  document.querySelector("#commitImport").textContent = "Import and fetch details";
-  document.querySelector("#commitImport").disabled = false;
+  const hadText = Boolean(nodes.importText.value.trim());
+  resetImportDialog({ keepText: true });
+  if (hadText) showTextImportPanel(true);
 });
 
 document.querySelector("#commitImport").addEventListener("click", async () => {
@@ -2142,7 +2289,7 @@ document.querySelector("#commitImport").addEventListener("click", async () => {
       button.disabled = false;
     }
 
-    pendingTaboraPackage = null;
+    resetImportDialog();
     nodes.importDialog.close();
     try {
       await refresh(`${imported.boardCount} shared ${imported.boardCount === 1 ? "board" : "boards"} and ${imported.linkCount} ${imported.linkCount === 1 ? "link" : "links"} imported`);
@@ -2150,30 +2297,28 @@ document.querySelector("#commitImport").addEventListener("click", async () => {
       console.error("Tabora package imported but the dashboard did not refresh", error);
       showToast("Shared file imported. Reload Tabora to show it.", "warning");
     }
-    button.textContent = "Import and fetch details";
     return;
   }
-  const groupsToImport = selectedPendingImportGroups();
+  const groupsToImport = selectedPendingImportGroups().map((group) => ({ ...group, name: cleanName(group.name, "Imported links") }));
   if (!groupsToImport.length) { showToast("Select at least one bookmark to import", "warning"); return; }
+  const fetchDetails = document.querySelector("#importFetchDetails").checked;
   button.disabled = true;
-  button.textContent = "Fetching details...";
-  const enriched = await enrichLinksWithMetadata(groupsToImport.flatMap((group) => group.links));
+  button.textContent = fetchDetails ? "Fetching details…" : "Importing…";
+  const allLinks = groupsToImport.flatMap((group) => group.links);
+  const enriched = fetchDetails
+    ? await enrichLinksWithMetadata(allLinks)
+    : { links: allLinks, fetchedCount: 0, accessGranted: true, skipped: true };
   const enrichedByUrl = new Map(enriched.links.map((link) => [normalizeUrl(link.url), link]));
   const enrichedGroups = groupsToImport.map((group) => ({
     ...group,
     links: group.links.map((link) => enrichedByUrl.get(normalizeUrl(link.url)) || link)
   }));
   const { result: imported } = await importLinkGroups(activePage().id, enrichedGroups);
-  pendingImportGroups = [];
-  selectiveBookmarkImport = false;
-  selectedImportUrls.clear();
-  expandedImportGroups.clear();
+  resetImportDialog();
   nodes.importDialog.close();
-  button.disabled = false;
-  button.textContent = "Import and fetch details";
   await refresh(enriched.accessGranted
-    ? `${imported.linkCount} links imported${enriched.fetchedCount ? ` · ${enriched.fetchedCount} details fetched` : ""}`
-    : `${imported.linkCount} links imported without fetched details`);
+    ? `${countLabel(imported.linkCount, "link")} imported${enriched.fetchedCount ? ` · ${enriched.fetchedCount} with details` : ""}`
+    : `${countLabel(imported.linkCount, "link")} imported without details (site access was not granted)`);
 });
 
 function renderTrash() {
@@ -2206,10 +2351,10 @@ function renderTrash() {
       row.querySelector("[data-restore-trash]").dataset.restoreTrash = item.id;
       row.querySelector("[data-delete-trash]").dataset.deleteTrash = item.id;
       row.querySelector("strong").textContent = item.type === "link" ? item.value.title : item.value.name;
-      row.querySelector(".trash-date").textContent = `Deleted ${new Date(deletedAt).toLocaleDateString()} · ${remaining} days remaining`;
+      row.querySelector(".trash-date").textContent = `Deleted ${formatRelativeTime(deletedAt) || new Date(deletedAt).toLocaleDateString()} · ${remaining === 1 ? "1 day" : `${remaining} days`} left`;
       row.querySelector(".trash-location").textContent = item.type === "link"
-        ? `Board: ${item.boardName || "Unknown"} · Page: ${item.pageName || "Home"}`
-        : `${item.value.links?.length || 0} bookmarks · Page: ${item.pageName || "Home"}`;
+        ? `${item.boardName || "Unknown board"} · ${item.pageName || "Home"}`
+        : `${countLabel(item.value.links?.length || 0, "bookmark")} · ${item.pageName || "Home"}`;
       group.append(row);
     }
     nodes.trashList.append(group);
@@ -2228,13 +2373,15 @@ nodes.trashList.addEventListener("click", async (event) => {
     const item = appState.trash.find((entry) => entry.id === deleteButton.dataset.deleteTrash);
     if (!item) return;
     const itemName = item.type === "link" ? item.value.title : item.value.name;
+    const linkCount = item.value.links?.length || 0;
     const confirmed = await requestDeleteConfirmation({
-      title: "Permanently Delete",
-      prompt: `Permanently delete "${itemName}" from trash? You cannot undo this action.`,
-      warning: "",
-      caution: "",
-      compact: true,
-      submitLabel: "Delete"
+      title: `Delete "${itemName}" forever?`,
+      prompt: item.type === "link"
+        ? `This bookmark from ${item.boardName || "a deleted board"} · ${item.pageName || "Home"} will be removed for good.`
+        : `This board${linkCount ? ` and its ${countLabel(linkCount, "bookmark")}` : ""} from ${item.pageName || "Home"} will be removed for good.`,
+      caution: "You can't undo this.",
+      tone: "danger",
+      submitLabel: "Delete forever"
     });
     if (!confirmed) return;
     await deleteTrashItem(item.id);
@@ -2245,12 +2392,14 @@ nodes.trashList.addEventListener("click", async (event) => {
 
 document.querySelector("#emptyTrash").addEventListener("click", async () => {
   if (!appState.trash.length) return;
+  const boardCount = appState.trash.filter((item) => item.type === "board").length;
+  const bookmarkCount = appState.trash.length - boardCount;
+  const contents = [boardCount && countLabel(boardCount, "board"), bookmarkCount && countLabel(bookmarkCount, "bookmark")].filter(Boolean).join(" and ");
   const confirmed = await requestDeleteConfirmation({
-    title: "Empty Trash",
-    prompt: "Permanently delete all items in trash? You cannot undo this action.",
-    warning: "",
-    caution: "",
-    compact: true,
+    title: "Empty Trash?",
+    prompt: `${contents} will be removed for good.`,
+    caution: "You can't undo this.",
+    tone: "danger",
     submitLabel: "Empty Trash"
   });
   if (!confirmed) return;
@@ -2332,6 +2481,7 @@ document.querySelectorAll("[data-settings-view]").forEach((button) => {
   button.addEventListener("click", () => {
     document.querySelectorAll("[data-settings-view]").forEach((item) => item.classList.toggle("active", item === button));
     document.querySelectorAll(".settings-view").forEach((view) => view.classList.toggle("active", view.dataset.view === button.dataset.settingsView));
+    if (button.dataset.settingsView === "tools") markHintSeen("tools");
   });
 });
 
@@ -2405,12 +2555,10 @@ document.querySelector("#exportTaboraData").addEventListener("click", exportTabo
 document.querySelector("#supportExport").addEventListener("click", exportTaboraData);
 document.querySelector("#resetPreferences").addEventListener("click", async () => {
   const confirmed = await requestDeleteConfirmation({
-    title: "Reset preferences",
-    prompt: "Reset Tabora preferences to their defaults?",
-    warning: "Your pages, boards, and links will stay untouched.",
-    caution: "",
-    compact: true,
-    submitLabel: "Reset"
+    title: "Reset preferences?",
+    prompt: "Theme, wallpaper and every setting go back to their defaults. Your pages, boards and links stay as they are.",
+    tone: "neutral",
+    submitLabel: "Reset preferences"
   });
   if (!confirmed) return;
   const defaults = createDefaultState().settings;
@@ -2547,6 +2695,15 @@ nodes.onboardingActions.addEventListener("click", (event) => {
   const button = event.target.closest("[data-onboarding-action]");
   if (button) ONBOARDING_STEPS[onboardingStepIndex()].actions[Number(button.dataset.onboardingAction)]?.run();
 });
+nodes.hintAction.addEventListener("click", () => {
+  const hint = currentHint;
+  if (!hint) return;
+  markHintSeen(hint.id);
+  hint.action?.run();
+});
+document.querySelector("#hintDismiss").addEventListener("click", () => {
+  if (currentHint) markHintSeen(currentHint.id);
+});
 nodes.recentStripList.addEventListener("click", async (event) => {
   const chip = event.target.closest("[data-recent-link]");
   if (!chip) return;
@@ -2563,6 +2720,7 @@ document.addEventListener("click", (event) => {
 async function switchToPageNumber(number) {
   const page = ordered(appState.pages)[number - 1];
   if (!page || page.id === activePage().id) return;
+  markHintSeen("pages");
   closeSearch();
   setCurrentPage(page.id);
   render();
@@ -2581,7 +2739,7 @@ document.addEventListener("keydown", (event) => {
   }
   if (event.ctrlKey || event.metaKey || event.altKey || event.target.closest("input, textarea, select, [contenteditable]") || document.querySelector("dialog[open]")) return;
   if (event.key === "/") { event.preventDefault(); openSearch(); return; }
-  if (event.key === "?") { event.preventDefault(); closeSearch(); nodes.shortcutsDialog.showModal(); return; }
+  if (event.key === "?") { event.preventDefault(); closeSearch(); openShortcuts(); return; }
   if ((event.key === "n" || event.key === "N") && !organizeMode) { event.preventDefault(); closeSearch(); openBoardDialog(); }
 });
 extensionApi.storage.onChanged.addListener((changes) => {

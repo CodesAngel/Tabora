@@ -34,7 +34,7 @@ const navigator = {
 
 const context = vm.createContext({ chrome, navigator, console, structuredClone, URL, setTimeout, clearTimeout });
 const source = `${fs.readFileSync("shared.js", "utf8")}
-globalThis.tabora = { createDefaultState, getTaboraState, saveTaboraState, addBoard, addLink, updateLink, customizeBoard, deleteBoard, undoLastAction, createTaboraBoardPackage, createTaboraPagePackage, parseTaboraPackage, importTaboraPackage, addPage, ensureQuickSaveBoard, revertOrganizeChanges, parseTaboraBackup, restoreTaboraBackup, importLinkGroups, deleteLink, restoreTrashItem, deleteTrashItem, safeFavIconUrl, normalizeState, TABORA_TRASH_RETENTION_MS, categorizeLink };`;
+globalThis.tabora = { createDefaultState, getTaboraState, saveTaboraState, addBoard, addLink, updateLink, customizeBoard, deleteBoard, undoLastAction, createTaboraBoardPackage, createTaboraPagePackage, parseTaboraPackage, importTaboraPackage, addPage, ensureQuickSaveBoard, revertOrganizeChanges, parseTaboraBackup, restoreTaboraBackup, importLinkGroups, deleteLink, restoreTrashItem, deleteTrashItem, safeFavIconUrl, normalizeState, TABORA_TRASH_RETENTION_MS, categorizeLink, formatRelativeTime, timestampFromId, normalizeUrl };`;
 vm.runInContext(source, context);
 
 (async () => {
@@ -203,6 +203,44 @@ vm.runInContext(source, context);
   assert.equal(category("https://example.com/", "Python API documentation"), "Development");
   assert.equal(category("https://example.com/", "Weekly news roundup"), "Reading");
   assert.equal(category("not a url", "Store hours"), "Shopping");
+
+  // Links record when they were saved; older links recover the time from their id.
+  const datedBoard = (await api.addBoard("home", "Dated")).result;
+  const before = Date.now();
+  const { result: datedLink } = await api.addLink(datedBoard.id, { url: "https://dated.test/" });
+  assert.ok(datedLink.createdAt >= before && datedLink.createdAt <= Date.now());
+  const undated = api.normalizeState({
+    pages: [{ id: "home", name: "Home" }],
+    boards: [{ id: "b", pageId: "home", name: "Old", links: [
+      { id: "link-1700000000000-abc", url: "https://old.test/" },
+      { id: "link-3-1700000000000-abc", url: "https://v1.test/" },
+      { id: "custom", url: "https://custom.test/" },
+      { id: "link-1700000000000-abc", url: "https://bad.test/", createdAt: "yesterday" }
+    ] }]
+  });
+  assert.deepEqual(undated.boards[0].links.map((link) => link.createdAt), [1700000000000, 1700000000000, undefined, 1700000000000]);
+  assert.equal(api.timestampFromId("link-99999999999999-x"), 0);
+  const now = Date.UTC(2026, 10, 25, 12);
+  assert.equal(api.formatRelativeTime(now - 10_000, now), "just now");
+  assert.equal(api.formatRelativeTime(now - 60_000, now), "1 minute ago");
+  assert.equal(api.formatRelativeTime(now - 3 * 3_600_000, now), "3 hours ago");
+  assert.equal(api.formatRelativeTime(now - 30 * 3_600_000, now), "yesterday");
+  assert.equal(api.formatRelativeTime(now - 5 * 86_400_000, now), "5 days ago");
+  assert.match(api.formatRelativeTime(now - 60 * 86_400_000, now), /^on /);
+  assert.equal(api.formatRelativeTime(undefined, now), "");
+
+  // Plain text is never turned into a link.
+  const url = api.normalizeUrl;
+  assert.equal(url("example.com/docs"), "https://example.com/docs");
+  assert.equal(url("https://example.com"), "https://example.com/");
+  assert.equal(url("localhost:3000/app"), "https://localhost:3000/app");
+  assert.equal(url("http://intranet/wiki"), "http://intranet/wiki");
+  assert.equal(url("192.168.1.10"), "https://192.168.1.10/");
+  assert.equal(url("hello"), "");
+  assert.equal(url("meeting notes for friday"), "");
+  assert.equal(url("https://not a url"), "");
+  assert.equal(url("javascript:alert(1)"), "");
+  assert.equal(url("mailto:a@example.com"), "");
 
   console.log("shared state tests passed");
 })().catch((error) => {

@@ -101,7 +101,7 @@ async function waitForTargets() {
     document.querySelector('[data-onboarding-action="2"]').click();
     const editorOpened = document.querySelector("#boardDialog").open;
     document.querySelector("#boardDialog").close();
-    await addBoard("home", "Tour board");
+    await addBoard(activePage().id, "Tour board");
     await refresh();
     await new Promise((resolve) => setTimeout(resolve, 100));
     const afterBoard = document.querySelector("#onboardingTitle").textContent;
@@ -369,9 +369,72 @@ async function waitForTargets() {
     };
   })()`);
   assert.equal(hub.open, true);
-  assert.equal(hub.views, 7);
+  assert.equal(hub.views, 6);
   assert.equal(hub.clipped, false);
   assert.ok(hub.width > 700 && hub.height > 500);
+
+  // Tools overview cards open their tab; the Map is gone.
+  const toolsNav = await client.evaluate(`(async () => {
+    document.querySelector('[data-feature-goto="vaults"]').click();
+    const vaultsActive = document.querySelector('[data-feature-section="vaults"]').classList.contains("active");
+    const current = document.querySelector('[data-feature-view][aria-current="page"]')?.dataset.featureView;
+    const statuses = [...document.querySelectorAll(".feature-tool-status")].map((node) => node.textContent);
+    document.querySelector("#featureDialog").close();
+    return { vaultsActive, current, statuses, hasMap: Boolean(document.querySelector('[data-feature-view="knowledge"], #knowledgeGraph')) };
+  })()`);
+  assert.equal(toolsNav.vaultsActive, true);
+  assert.equal(toolsNav.current, "vaults");
+  assert.equal(toolsNav.statuses.every(Boolean), true);
+  assert.equal(toolsNav.hasMap, false);
+
+  // Reversible deletes never claim they can't be undone; permanent ones do, in red.
+  const confirmTones = await client.evaluate(`(async () => {
+    const read = () => ({
+      tone: nodes.deleteConfirmDialog.dataset.tone,
+      caution: document.querySelector("#deleteConfirmCaution").hidden ? "" : document.querySelector("#deleteConfirmCaution").textContent,
+      submit: document.querySelector("#deleteConfirmSubmit").textContent
+    });
+    const trash = requestDeleteConfirmation({ title: "Move?", prompt: "Goes to Trash." });
+    const trashState = read();
+    document.querySelector("#deleteConfirmCancel").click();
+    const cancelled = await trash;
+    const forever = requestDeleteConfirmation({ title: "Delete forever?", prompt: "Gone.", caution: "You can't undo this.", tone: "danger", submitLabel: "Delete forever" });
+    const dangerState = read();
+    document.querySelector("#deleteConfirmSubmit").click();
+    return { trashState, cancelled, dangerState, confirmed: await forever };
+  })()`);
+  assert.deepEqual(confirmTones.trashState, { tone: "trash", caution: "", submit: "Move to Trash" });
+  assert.equal(confirmTones.cancelled, false);
+  assert.deepEqual(confirmTones.dangerState, { tone: "danger", caution: "You can't undo this.", submit: "Delete forever" });
+  assert.equal(confirmTones.confirmed, true);
+
+  // Pasted text: plain lines are skipped and counted, and the button says how many links it found.
+  const paste = await client.evaluate(`(async () => {
+    document.querySelector("#importTool").click();
+    document.querySelector('[data-import="text"]').click();
+    const pressed = document.querySelector('[data-import="text"]').getAttribute("aria-pressed");
+    nodes.importText.value = ["Docs | https://paste-check.test/docs", "meeting notes for friday", "hello"].join(String.fromCharCode(10));
+    nodes.importText.dispatchEvent(new Event("input"));
+    const result = { pressed, status: document.querySelector("#importTextStatus").textContent, button: document.querySelector("#confirmTextImport").textContent };
+    nodes.importDialog.close();
+    return result;
+  })()`);
+  assert.equal(paste.pressed, "true");
+  assert.equal(paste.status, "1 link found · 2 lines skipped (not a web address)");
+  assert.equal(paste.button, "Review 1 link");
+
+  // At phone width the tools dialog fits and its close button stays on screen.
+  await client.send("Emulation.setDeviceMetricsOverride", { width: 400, height: 800, deviceScaleFactor: 1, mobile: false });
+  const narrowTools = await client.evaluate(`(async () => {
+    await openFeatureCenter("overview");
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const dialog = document.querySelector("#featureDialog").getBoundingClientRect();
+    const close = document.querySelector("#featureDialog .settings-close").getBoundingClientRect();
+    document.querySelector("#featureDialog").close();
+    return { fits: dialog.right <= innerWidth && dialog.left >= 0, closeVisible: close.right <= innerWidth && close.top >= 0 && close.width > 0 };
+  })()`);
+  await client.send("Emulation.clearDeviceMetricsOverride");
+  assert.deepEqual(narrowTools, { fits: true, closeVisible: true });
 
   const persistenceId = await client.evaluate(`(async () => {
     let board = appState.boards.find((item) => item.name === "Persistence Test");
@@ -422,6 +485,55 @@ async function waitForTargets() {
   assert.equal(discovery.searchOpen, true);
   assert.equal(discovery.webRow, "Search the web for “zzz-no-match”");
   assert.equal(discovery.shortcutsOpen, true);
+
+  // Search covers every page, with the current page first; tips appear one at a time and retire.
+  const allPages = await client.evaluate(`(async () => {
+    const here = (await addBoard(activePage().id, "Here board", [{ title: "Crosspage here", url: "https://example.com/cross-here" }])).result;
+    const { result: otherPage } = await addPage("Elsewhere");
+    const there = (await addBoard(otherPage.id, "There board", [{ title: "Crosspage there", url: "https://example.com/cross-there" }])).result;
+    await refresh();
+    openSearch();
+    nodes.globalSearch.value = "crosspage";
+    nodes.globalSearch.dispatchEvent(new Event("input"));
+    await new Promise((resolve) => setTimeout(resolve, 220));
+    const titles = [...document.querySelectorAll("#searchResultsList [data-search-open-link] strong")].map((node) => node.textContent);
+    const labels = [...document.querySelectorAll("#searchResultsList [data-search-open-link] .search-result-board")].map((node) => node.textContent);
+    const summary = nodes.searchResultsSummary.textContent;
+    closeSearch();
+
+    hintsAllowedThisSession = true;
+    await updateTaboraState((state) => { state.settings.hintsSeen = []; state.settings.showHints = true; });
+    await refresh();
+    const firstHint = { hidden: nodes.hintStrip.hidden, text: nodes.hintText.textContent, action: nodes.hintAction.textContent };
+    openSearch();
+    closeSearch();
+    const afterSearch = nodes.hintText.textContent;
+    document.querySelector("#hintDismiss").click();
+    const afterDismiss = nodes.hintText.textContent;
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const seen = (await getTaboraState()).settings.hintsSeen;
+    await setSetting("showHints", false);
+    await refresh();
+    const hiddenWhenOff = nodes.hintStrip.hidden;
+    await setSetting("showHints", true);
+
+    await deleteBoard(here.id);
+    await deleteBoard(there.id);
+    await updateTaboraState((state) => { state.pages = state.pages.filter((page) => page.id !== otherPage.id); });
+    await refresh();
+    return { titles, labels, summary, firstHint, afterSearch, afterDismiss, seen, hiddenWhenOff };
+  })()`);
+  assert.deepEqual(allPages.titles, ["Crosspage here", "Crosspage there"]);
+  assert.deepEqual(allPages.labels, ["Here board", "Elsewhere / There board"]);
+  assert.equal(allPages.summary, "2 matching links · 1 on other pages");
+  assert.equal(allPages.firstHint.hidden, false);
+  assert.match(allPages.firstHint.text, /search every page/);
+  assert.equal(allPages.firstHint.action, "Try it");
+  assert.doesNotMatch(allPages.afterSearch, /search every page/);
+  assert.notEqual(allPages.afterDismiss, allPages.afterSearch);
+  assert.equal(allPages.seen.includes("search"), true);
+  assert.equal(allPages.seen.length >= 2, true);
+  assert.equal(allPages.hiddenWhenOff, true);
 
   const popupUrl = new URL("popup.html", page.url).href;
   await client.send("Page.navigate", { url: popupUrl });

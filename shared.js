@@ -84,6 +84,36 @@ function makeId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+// Timestamps from 2001 up to a day in the future; anything else is treated as missing.
+function isValidTimestamp(value) {
+  return Number.isFinite(value) && value > 1e12 && value < Date.now() + 86_400_000;
+}
+
+// makeId embeds Date.now(), so links saved before createdAt existed still carry their real save time.
+function timestampFromId(id) {
+  const match = String(id || "").match(/(?:^|-)(\d{13})(?=-|$)/);
+  const value = match ? Number(match[1]) : 0;
+  return isValidTimestamp(value) ? value : 0;
+}
+
+function formatRelativeTime(timestamp, now = Date.now()) {
+  if (!isValidTimestamp(timestamp)) return "";
+  const elapsed = Math.max(0, now - timestamp);
+  const minute = 60_000, hour = 60 * minute, day = 24 * hour;
+  if (elapsed < minute) return "just now";
+  if (elapsed < hour) return countLabel(Math.floor(elapsed / minute), "minute") + " ago";
+  if (elapsed < day) return countLabel(Math.floor(elapsed / hour), "hour") + " ago";
+  if (elapsed < 2 * day) return "yesterday";
+  if (elapsed < 30 * day) return countLabel(Math.floor(elapsed / day), "day") + " ago";
+  const date = new Date(timestamp);
+  const sameYear = date.getFullYear() === new Date(now).getFullYear();
+  return "on " + date.toLocaleDateString(undefined, sameYear ? { month: "short", day: "numeric" } : { year: "numeric", month: "short", day: "numeric" });
+}
+
+function countLabel(count, word) {
+  return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
 function createDefaultState() {
   return {
     schemaVersion: TABORA_SCHEMA_VERSION,
@@ -110,7 +140,9 @@ function createDefaultState() {
       activeMoodId: "",
       onboardingComplete: false,
       showRecentlyOpened: true,
-      lastSaveBoardId: ""
+      lastSaveBoardId: "",
+      showHints: true,
+      hintsSeen: []
     }
   };
 }
@@ -131,6 +163,11 @@ function normalizeState(value) {
     board.links = Array.isArray(board.links) ? board.links : [];
     for (const link of board.links) {
       link.health = link.health && typeof link.health === "object" ? link.health : null;
+      if (!isValidTimestamp(link.createdAt)) {
+        const fromId = timestampFromId(link.id);
+        if (fromId) link.createdAt = fromId;
+        else delete link.createdAt;
+      }
     }
   }
   const boardsByPage = new Map(state.pages.map((page) => [page.id, []]));
@@ -165,6 +202,9 @@ function normalizeState(value) {
   state.moods = Array.isArray(state.moods) ? state.moods : [];
   state.vaults = Array.isArray(state.vaults) ? state.vaults : [];
   state.settings = { ...fallback.settings, ...(state.settings || {}) };
+  state.settings.hintsSeen = Array.isArray(state.settings.hintsSeen)
+    ? [...new Set(state.settings.hintsSeen.filter((id) => typeof id === "string"))].slice(0, 50)
+    : [];
   // Organize mode is per-tab and the language picker was never wired up.
   delete state.settings.organizeMode;
   delete state.settings.language;
@@ -210,7 +250,8 @@ function migrateV1Data(sessions = [], workspaces = []) {
         url: tab.url || "",
         favIconUrl: safeFavIconUrl(tab.favIconUrl),
         note: "",
-        order: linkIndex
+        order: linkIndex,
+        createdAt: session.createdAt || Date.now()
       }))
     });
   }
@@ -295,10 +336,17 @@ function cleanName(value, fallback) {
 function normalizeUrl(value) {
   const raw = String(value || "").trim();
   if (!raw) return "";
-  const candidate = /^[a-z][a-z\d+.-]*:/i.test(raw) ? raw : `https://${raw}`;
+  // "localhost:3000" looks like a scheme but is a host and port.
+  const hasScheme = /^[a-z][a-z\d+.-]*:/i.test(raw) && !/^[^:/]+:\d+(?:[/?#]|$)/.test(raw);
+  const candidate = hasScheme ? raw : `https://${raw}`;
   try {
     const url = new URL(candidate);
     if (!['http:', 'https:'].includes(url.protocol)) return "";
+    // Chromium percent-encodes spaces in hosts, so "meeting notes" would otherwise become a link.
+    if (!url.hostname || /[%\s]/.test(url.hostname)) return "";
+    // Without a scheme, a bare word ("hello") is text, not an address.
+    const isIp = /^\[|^\d{1,3}(\.\d{1,3}){3}$/.test(url.hostname);
+    if (!hasScheme && !url.hostname.includes(".") && url.hostname !== "localhost" && !isIp) return "";
     return url.href;
   } catch {
     return "";
@@ -446,7 +494,7 @@ async function importTaboraPackage(value, destinationPageId) {
         icon: source.icon,
         size: source.size,
         createdAt: Date.now() + index,
-        links: source.links.map((link, linkIndex) => ({ ...link, id: makeId("link"), order: linkIndex }))
+        links: source.links.map((link, linkIndex) => ({ ...link, id: makeId("link"), order: linkIndex, createdAt: Date.now() }))
       };
       columnBoards.push(board);
       state.boards.push(board);
@@ -623,7 +671,8 @@ function createBoardInState(state, pageId, name, links = [], placement = null) {
         title: cleanName(link.title, getDomain(link.url)),
         url: normalizeUrl(link.url),
         favIconUrl: safeFavIconUrl(link.favIconUrl),
-        note: String(link.note || "").trim().slice(0, 2000)
+        note: String(link.note || "").trim().slice(0, 2000),
+        createdAt: Date.now()
       }))
       .filter((link) => {
         if (!link.url || savedUrls.has(link.url)) return false;
@@ -755,7 +804,8 @@ async function addLink(boardId, values) {
       url,
       favIconUrl: safeFavIconUrl(values.favIconUrl),
       note: String(values.note || "").trim().slice(0, 2000),
-      order: board.links.length
+      order: board.links.length,
+      createdAt: Date.now()
     };
     board.links.push(link);
     board.lastUsedAt = Date.now();

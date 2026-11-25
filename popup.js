@@ -69,7 +69,8 @@ function renderCurrentTab() {
   notice.hidden = !duplicate;
   if (duplicate) {
     document.querySelector("#duplicateTitle").textContent = `Already in ${duplicate.board.name}`;
-    document.querySelector("#duplicateDetail").textContent = `Saved on ${duplicate.page?.name || "Home"}.`;
+    const savedWhen = formatRelativeTime(duplicate.link.createdAt);
+    document.querySelector("#duplicateDetail").textContent = `On ${duplicate.page?.name || "Home"}${savedWhen ? ` · saved ${savedWhen}` : ""}.`;
     notice.dataset.pageId = duplicate.board.pageId;
     notice.dataset.linkId = duplicate.link.id;
   }

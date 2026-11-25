@@ -11,19 +11,48 @@ const featureNodes = {
   recent: document.querySelector("#recentActivity"),
   organizeResults: document.querySelector("#organizeResults"),
   moodList: document.querySelector("#moodList"),
-  graph: document.querySelector("#knowledgeGraph"),
   vaultPage: document.querySelector("#vaultPage"),
   vaultList: document.querySelector("#vaultList"),
   roomCode: document.querySelector("#roomCode"),
-  roomPassword: document.querySelector("#roomPassword")
+  roomPassword: document.querySelector("#roomPassword"),
+  roomShareOutput: document.querySelector("#roomShareOutput"),
+  roomShareCode: document.querySelector("#roomShareCode"),
+  roomSharePassword: document.querySelector("#roomSharePassword")
 };
 
-function formatFeatureTime(timestamp) {
-  const elapsed = Date.now() - timestamp;
-  if (elapsed < 60_000) return "Just now";
-  if (elapsed < 3_600_000) return `${Math.floor(elapsed / 60_000)}m ago`;
-  if (elapsed < 86_400_000) return `${Math.floor(elapsed / 3_600_000)}h ago`;
-  return new Date(timestamp).toLocaleDateString();
+function showFeatureView(view) {
+  const target = document.querySelector(`[data-feature-section="${view}"]`) ? view : "overview";
+  document.querySelectorAll("[data-feature-view]").forEach((button) => {
+    const active = button.dataset.featureView === target;
+    button.classList.toggle("active", active);
+    if (active) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  });
+  document.querySelectorAll("[data-feature-section]").forEach((section) => section.classList.toggle("active", section.dataset.featureSection === target));
+  document.querySelector(".feature-content").scrollTop = 0;
+}
+
+function setFeatureStatus(view, text, tone = "") {
+  const node = document.querySelector(`#featureStatus-${view}`);
+  if (!node) return;
+  node.textContent = text;
+  node.dataset.tone = tone;
+}
+
+function renderOverviewStatus() {
+  const opened = appState.recentlyOpened.length;
+  setFeatureStatus("activity", opened ? `${countLabel(opened, "link")} opened recently` : "Nothing opened yet");
+  const links = appState.boards.flatMap((board) => board.links);
+  const checked = links.filter((link) => link.health?.checkedAt);
+  const lastChecked = Math.max(0, ...checked.map((link) => link.health.checkedAt));
+  const problems = checked.filter((link) => link.health.status !== "ok").length;
+  setFeatureStatus("organize", !checked.length ? "Not checked yet"
+    : `Checked ${formatRelativeTime(lastChecked)}${problems ? ` · ${problems} need attention` : " · all healthy"}`, problems ? "warning" : "");
+  setFeatureStatus("spaces", appState.moods.length ? `${countLabel(appState.moods.length, "mood")} saved` : "None saved yet");
+  setFeatureStatus("vaults", appState.vaults.length ? `${countLabel(appState.vaults.length, "locked page")}` : "No locked pages");
+  setFeatureStatus("rooms", "Share or join");
+  document.querySelector("#smartOrganizeDetail").textContent = `Groups the links on ${activePage().name} into boards like Reading or Development. You can undo it.`;
+  document.querySelector("#roomShareDetail").textContent = `Creates an encrypted copy of ${activePage().name} with its ${countLabel(appState.boards.filter((board) => board.pageId === activePage().id).length, "board")}.`;
 }
 
 function featureRow(title, meta, actions = []) {
@@ -57,13 +86,13 @@ async function renderFeatureCenter() {
   renderMoods();
   renderVaults();
   renderVaultPages();
-  renderKnowledgeGraph();
+  renderOverviewStatus();
 }
 
 async function openFeatureCenter(view = "overview") {
-  document.querySelectorAll("[data-feature-view]").forEach((button) => button.classList.toggle("active", button.dataset.featureView === view));
-  document.querySelectorAll("[data-feature-section]").forEach((section) => section.classList.toggle("active", section.dataset.featureSection === view));
-  featureNodes.dialog.showModal();
+  if (typeof markHintSeen === "function") markHintSeen("tools");
+  showFeatureView(view);
+  if (!featureNodes.dialog.open) featureNodes.dialog.showModal();
   await renderFeatureCenter();
 }
 
@@ -77,11 +106,11 @@ async function renderUndoStatus() {
 function renderRecentActivity() {
   featureNodes.recent.replaceChildren();
   if (!appState.recentlyOpened.length) {
-    featureNodes.recent.innerHTML = '<div class="feature-empty">No recently opened bookmarks.</div>';
+    featureNodes.recent.innerHTML = '<div class="feature-empty"><strong>Nothing opened yet</strong><span>Links you open from your boards show up here.</span></div>';
     return;
   }
   for (const item of appState.recentlyOpened.slice(0, 20)) {
-    featureNodes.recent.append(featureRow(item.title, `${item.pageName} / ${item.boardName} · ${formatFeatureTime(item.openedAt)}`, [{
+    featureNodes.recent.append(featureRow(item.title, `${item.pageName} / ${item.boardName} · opened ${formatRelativeTime(item.openedAt)}`, [{
       label: "Open",
       run: async () => extensionApi.tabs.create({ url: item.url })
     }]));
@@ -90,7 +119,7 @@ function renderRecentActivity() {
 
 async function checkAllLinks() {
   const links = appState.boards.flatMap((board) => board.links.map((link) => ({ board, link })));
-  featureNodes.organizeResults.innerHTML = '<div class="feature-progress"><span></span><strong>Checking links...</strong></div>';
+  featureNodes.organizeResults.innerHTML = `<div class="feature-progress"><span></span><strong>Checking ${countLabel(links.length, "link")}…</strong></div>`;
   const results = [];
   async function checkEntry(entry) {
     if (entry.link.url.startsWith("http:")) return { ...entry, health: { status: "insecure", checkedAt: Date.now(), finalUrl: entry.link.url } };
@@ -119,18 +148,32 @@ async function checkAllLinks() {
   appState = await getTaboraState();
   featureNodes.organizeResults.replaceChildren();
   const problemLinks = results.filter((result) => result.health.status !== "ok");
-  if (!problemLinks.length) featureNodes.organizeResults.innerHTML = '<div class="feature-empty">All checked links are healthy.</div>';
+  if (!problemLinks.length) featureNodes.organizeResults.innerHTML = `<div class="feature-empty"><strong>All ${countLabel(results.length, "link")} are healthy</strong><span>Nothing is broken or has moved.</span></div>`;
+  else {
+    const heading = document.createElement("h3");
+    heading.className = "feature-subheading";
+    heading.textContent = `${problemLinks.length} of ${countLabel(results.length, "link")} need attention`;
+    featureNodes.organizeResults.append(heading);
+  }
   for (const result of problemLinks) {
-    const meta = result.health.status === "redirected" ? `Redirects to ${getDomain(result.health.finalUrl)}` : result.health.status === "insecure" ? "Uses an insecure HTTP address" : "Could not be reached";
-    featureNodes.organizeResults.append(featureRow(result.link.title, meta, result.health.status === "redirected" ? [{
-      label: "Update",
+    const pageName = appState.pages.find((page) => page.id === result.board.pageId)?.name || "Home";
+    const status = result.health.status === "redirected" ? `Moved to ${getDomain(result.health.finalUrl)}`
+      : result.health.status === "insecure" ? "Uses an insecure http:// address"
+        : result.health.code ? `Broken (error ${result.health.code})` : "Could not be reached";
+    const actions = [{ label: "Open", run: async () => extensionApi.tabs.create({ url: result.link.url }) }];
+    if (result.health.status === "redirected") actions.push({
+      label: "Use new address",
       run: async () => {
         await updateLink(result.board.id, result.link.id, { ...result.link, url: result.health.finalUrl });
-        await refresh("Bookmark URL updated");
+        await refresh("Bookmark address updated");
         await renderFeatureCenter();
       }
-    }] : []));
+    });
+    const row = featureRow(result.link.title, `${status} · ${result.board.name} · ${pageName}`, actions);
+    row.dataset.health = result.health.status;
+    featureNodes.organizeResults.append(row);
   }
+  renderOverviewStatus();
   await refresh(`${links.length} links checked`);
 }
 
@@ -142,11 +185,12 @@ async function smartOrganizeCurrentPage() {
   if (!counts.size) { showToast("No bookmarks to organize", "warning"); return; }
   const summary = [...counts].map(([name, count]) => `${name}: ${count}`).join(" · ");
   const confirmed = await requestDeleteConfirmation({
-    title: "Smart Organization",
+    title: `Organize "${page.name}" by topic?`,
     prompt: summary,
-    warning: "Bookmarks will be regrouped into category boards. Empty boards will remain available.",
-    caution: "You can undo this change.",
-    submitLabel: "Organize"
+    warning: "Bookmarks move into one board per topic. Boards that end up empty stay on the page.",
+    caution: "You can undo this right after.",
+    tone: "neutral",
+    submitLabel: "Organize page"
   });
   if (!confirmed) return;
   await updateTaboraState((state) => {
@@ -171,9 +215,11 @@ async function smartOrganizeCurrentPage() {
 
 function renderMoods() {
   featureNodes.moodList.replaceChildren();
-  if (!appState.moods.length) featureNodes.moodList.innerHTML = '<div class="feature-empty">No mood spaces saved.</div>';
+  if (!appState.moods.length) featureNodes.moodList.innerHTML = '<div class="feature-empty"><strong>No moods yet</strong><span>Set up a page and wallpaper you like, then name it above.</span></div>';
   for (const mood of appState.moods) {
-    featureNodes.moodList.append(featureRow(mood.name, `${appState.pages.find((page) => page.id === mood.pageId)?.name || "Home"} · ${mood.theme}`, [
+    const theme = mood.theme === "light" ? "Light" : "Dark";
+    const active = appState.settings.activeMoodId === mood.id ? " · In use" : "";
+    featureNodes.moodList.append(featureRow(mood.name, `${appState.pages.find((page) => page.id === mood.pageId)?.name || "Home"} · ${theme} theme${active}`, [
       { label: "Apply", run: async () => applyMood(mood.id) },
       { label: "Delete", danger: true, run: async () => { await updateTaboraState((state) => { state.moods = state.moods.filter((item) => item.id !== mood.id); }); await renderFeatureCenter(); } }
     ]));
@@ -193,38 +239,9 @@ async function applyMood(moodId) {
     return state.settings.activePageId;
   }, { undoLabel: "Mood change" });
   if (pageId) setCurrentPage(pageId);
-  await refresh("Mood space applied");
+  await refresh("Mood applied");
   await applyAppearance();
   await renderFeatureCenter();
-}
-
-function renderKnowledgeGraph() {
-  featureNodes.graph.replaceChildren();
-  const page = activePage();
-  const boards = appState.boards.filter((board) => board.pageId === page.id).slice(0, 12);
-  if (!boards.length) { featureNodes.graph.innerHTML = '<div class="feature-empty">Add boards to build a knowledge graph.</div>'; return; }
-  const domains = [...new Set(boards.flatMap((board) => board.links.map((link) => getDomain(link.url))))].slice(0, 16);
-  const map = document.createElement("div");
-  map.className = "graph-map";
-  const pageNode = document.createElement("strong");
-  pageNode.className = "graph-node graph-page-node";
-  pageNode.textContent = page.name;
-  map.append(pageNode);
-  for (const board of boards) {
-    const node = document.createElement("button");
-    node.type = "button";
-    node.className = "graph-node graph-board-node";
-    node.textContent = board.name;
-    node.addEventListener("click", () => { featureNodes.dialog.close(); nodes.globalSearch.value = board.name; renderBoards(); });
-    map.append(node);
-  }
-  for (const domain of domains) {
-    const node = document.createElement("span");
-    node.className = "graph-node graph-domain-node";
-    node.textContent = domain;
-    map.append(node);
-  }
-  featureNodes.graph.append(map);
 }
 
 function bytesToBase64(bytes) {
@@ -271,18 +288,27 @@ function renderVaultPages() {
 
 function renderVaults() {
   featureNodes.vaultList.replaceChildren();
-  if (!appState.vaults.length) featureNodes.vaultList.innerHTML = '<div class="feature-empty">No locked pages.</div>';
+  if (!appState.vaults.length) featureNodes.vaultList.innerHTML = '<div class="feature-empty"><strong>No locked pages</strong><span>Pages you lock show up here until you unlock them.</span></div>';
   for (const vault of appState.vaults) {
-    const row = featureRow("Encrypted page", `Locked ${formatFeatureTime(vault.createdAt)}`);
+    // The page name is encrypted too, so only the lock date is shown.
+    const row = featureRow("Locked page", `Locked ${formatRelativeTime(vault.createdAt) || "earlier"}`);
     const controls = row.querySelector(".feature-row-actions");
+    const form = document.createElement("form");
+    form.className = "vault-unlock-form";
     const password = document.createElement("input");
     password.type = "password";
     password.placeholder = "Password";
-    password.className = "vault-unlock-input";
+    password.autocomplete = "current-password";
+    password.required = true;
+    password.className = "dark-input vault-unlock-input";
+    password.setAttribute("aria-label", "Vault password");
     const unlock = document.createElement("button");
-    unlock.type = "button";
+    unlock.type = "submit";
+    unlock.className = "secondary-button";
     unlock.textContent = "Unlock";
-    unlock.addEventListener("click", async () => {
+    form.append(password, unlock);
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
       try {
         const payload = await decryptWithPassword(vault, password.value);
         await updateTaboraState((state) => {
@@ -301,10 +327,11 @@ function renderVaults() {
         await refresh("Private page unlocked");
         await renderFeatureCenter();
       } catch {
-        showToast("Incorrect vault password", "warning");
+        showToast("That password doesn't unlock this page", "warning");
+        password.select();
       }
     });
-    controls.append(password, unlock);
+    controls.append(form);
     featureNodes.vaultList.append(row);
   }
 }
@@ -315,9 +342,11 @@ async function createRoomPackage() {
   const password = bytesToBase64(crypto.getRandomValues(new Uint8Array(18)));
   const encrypted = await encryptWithPassword({ page, boards, expiresAt: Date.now() + 86_400_000 }, password);
   const packageValue = `TABORA2.${btoa(JSON.stringify(encrypted))}`;
-  featureNodes.roomCode.value = packageValue;
-  featureNodes.roomPassword.value = password;
-  await copyShareText(packageValue, "Room package copied. Send the password separately.");
+  featureNodes.roomShareCode.value = packageValue;
+  featureNodes.roomSharePassword.value = password;
+  featureNodes.roomShareOutput.hidden = false;
+  document.querySelector("#createRoom").textContent = "Create a new package";
+  await copyShareText(packageValue, "Package copied. Send the password separately.");
 }
 
 function readRoomPackage(code, typedPassword) {
@@ -348,7 +377,8 @@ async function joinRoomPackage() {
           url: normalizeUrl(link.url),
           favIconUrl: safeFavIconUrl(link.favIconUrl),
           note: String(link.note || "").slice(0, 2000),
-          order: linkIndex
+          order: linkIndex,
+          createdAt: Date.now()
         })).filter((link) => link.url);
         state.boards.push({
           id: makeId("board"),
@@ -386,11 +416,8 @@ document.querySelectorAll("[data-open-feature]").forEach((button) => button.addE
   nodes.settingsDialog.close();
   void openFeatureCenter(button.dataset.openFeature);
 }));
-document.querySelectorAll("[data-feature-view]").forEach((button) => button.addEventListener("click", async () => {
-  document.querySelectorAll("[data-feature-view]").forEach((item) => item.classList.toggle("active", item === button));
-  document.querySelectorAll("[data-feature-section]").forEach((section) => section.classList.toggle("active", section.dataset.featureSection === button.dataset.featureView));
-  if (button.dataset.featureView === "knowledge") renderKnowledgeGraph();
-}));
+document.querySelectorAll("[data-feature-view]").forEach((button) => button.addEventListener("click", () => showFeatureView(button.dataset.featureView)));
+document.querySelectorAll("[data-feature-goto]").forEach((button) => button.addEventListener("click", () => showFeatureView(button.dataset.featureGoto)));
 
 document.querySelector("#featureSaveSession").addEventListener("click", async () => {
   const date = new Date().toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -432,7 +459,7 @@ document.querySelector("#moodForm").addEventListener("submit", async (event) => 
   });
   document.querySelector("#moodName").value = "";
   await renderFeatureCenter();
-  showToast("Mood space saved");
+  showToast("Mood saved");
 });
 
 document.querySelector("#vaultForm").addEventListener("submit", async (event) => {
@@ -468,8 +495,11 @@ document.querySelector("#vaultForm").addEventListener("submit", async (event) =>
 
 document.querySelector("#createRoom").addEventListener("click", createRoomPackage);
 document.querySelector("#joinRoom").addEventListener("click", joinRoomPackage);
+document.querySelector("#copyRoomCode").addEventListener("click", () => {
+  if (featureNodes.roomShareCode.value) void copyShareText(featureNodes.roomShareCode.value, "Package copied");
+});
 document.querySelector("#copyRoomPassword").addEventListener("click", () => {
-  if (featureNodes.roomPassword.value) void copyShareText(featureNodes.roomPassword.value, "Room password copied");
+  if (featureNodes.roomSharePassword.value) void copyShareText(featureNodes.roomSharePassword.value, "Password copied");
 });
 
 document.addEventListener("keydown", async (event) => {
