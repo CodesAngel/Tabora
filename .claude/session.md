@@ -1,6 +1,6 @@
 # Tabora: session notes
 
-Last updated: 2026-11-04
+Last updated: 2026-11-25
 
 ## Where the designs live
 
@@ -43,9 +43,7 @@ From **ux-mockups**, proposals 04, 05, 06 and 08 are built (commits `2538ce7` an
 - README (features, getting started, shortcuts, permissions, test note, schema, roadmap), CHANGELOG `[Unreleased]`, CHROMEWEBSTORE permission justifications and BROWSER_SUPPORT are updated.
 
 ## Testing notes
-- **Google Chrome 137 and later ignore `--load-extension`.** Use Edge or Chromium for the smoke test.
-- In Edge, also pass `--disable-sync --disable-features=msImplicitSignin,msEdgeSync`. Otherwise a fresh profile signs in to the Windows Microsoft account and starts syncing extensions.
-- Driving Edge over CDP: in Node, `new URL("chrome-extension://…").origin` is `"null"`, so build the origin from the string. MV3 service workers drop out of `/json/list` when they go idle.
+See `CLAUDE.md` (Tests, CDP screenshot gotchas).
 
 ## Tried and dropped
 
@@ -73,10 +71,18 @@ The rail, the confirmation dialogs and Organize mode stay as they are.
 - [ ] 07 Quick capture with highlights and reminders
 - [ ] 08 Backup, restore points and export
 
+### Done after 3.2.0 (uncommitted, in CHANGELOG [Unreleased])
+- `link.createdAt` set on every new link; older links get it from the timestamp inside their id (`timestampFromId`). Popup says "On Home · saved 3 days ago" (`formatRelativeTime`).
+- Search covers every page, current page first; other pages labelled "Page / Board".
+- Hint strip (`HINTS` in dashboard.js): one tip at a time, retired when used or dismissed (`settings.hintsSeen`), hidden in the session where onboarding finishes, toggle `settings.showHints`.
+
+### UI pass on dialogs (uncommitted, in CHANGELOG [Unreleased])
+- `requestDeleteConfirmation` takes `tone`: "trash" (default, reversible), "danger" (permanent, solid red), "neutral" (restore, reset, Smart organize). The default caution text is gone.
+- Import: `resetImportDialog`, `showTextImportPanel`, `updateTextImportStatus`; the preview has an editable board name and `#importFetchDetails`.
+- Workspace tools: 6 views (the Knowledge graph was removed), `showFeatureView`, `renderOverviewStatus`, Rooms split into share and join fields (`#roomShareCode`, `#roomSharePassword`, `#roomCode`, `#roomPassword`).
+- `normalizeUrl` rejects hosts with spaces, and bare words without a dot.
+
 ### Open questions and follow-ups
-- [ ] Should search cover **all pages** instead of only the current one? The mockup didn't say.
-- [ ] The mockup's first-use **hint strip** became the last onboarding step plus the `?` dialog. Add a real strip if wanted.
 - [ ] Test by hand in **Firefox**: favicon fallback, `search.search` fallback, and the new popup.
 - [ ] Test by hand: commit a bookmark import from the onboarding card (it asks for site access).
-- [ ] The popup's "already saved" notice can't say *when* a link was saved, because links have no `createdAt` yet.
-- [ ] Bump the version in `manifest.json` (new permissions mean a minor version) and release.
+- [ ] Release 3.3.0 (bump `manifest.json`, date the CHANGELOG section).

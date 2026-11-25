@@ -37,15 +37,16 @@
 ### Save
 
 - **Quick Save** with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Y</kbd>, confirmed by a ✓ badge showing where the tab went.
-- **The toolbar popup puts the current tab first**: one "Save to [last board]" button, a ▾ menu with every board plus "New board…", and a warning *before* you save if the tab is already in Tabora, with a "Show it" button that opens the dashboard on that bookmark.
+- **The toolbar popup puts the current tab first**: one "Save to [last board]" button, a ▾ menu with every board plus "New board…", and a warning *before* you save if the tab is already in Tabora (saying where and when you saved it), with a "Show it" button that opens the dashboard on that bookmark.
 - **Save a whole window** as a board from the same popup.
 - **Import** browser bookmarks (whole folders or individual links), open tabs, pasted lists, HTML, CSV and text files.
 - **Automatic link details**: title, description and site icon are fetched when you save, once you allow optional site access.
 
 ### Find
 
-- **Search in the header** across titles, addresses, notes and board names. Press <kbd>/</kbd> to start, <kbd>Enter</kbd> to open the first result, or <kbd>Shift</kbd>+<kbd>Enter</kbd> to search the web with your default search engine.
+- **Search in the header** across every page: titles, addresses, notes, and board and page names. Results from the current page come first, and results from other pages show which page they are on. Press <kbd>/</kbd> to start, <kbd>Enter</kbd> to open the first result, or <kbd>Shift</kbd>+<kbd>Enter</kbd> to search the web with your default search engine.
 - **Recently opened** links sit in a row above your boards (you can hide it in *Settings → Appearance*).
+- **Tips** point out one feature at a time, such as search, the popup or page shortcuts, and stop once you have used it or dismissed it (you can turn them off in *Settings → Appearance*).
 - **Real site icons** in Chromium browsers, read from the browser's own icon cache: no network request and no site-access prompt. Sites the browser has never visited keep a letter tile.
 - **Link health check** finds links that are broken or have moved, and updates moved ones in one click.
 
@@ -54,7 +55,7 @@
 - **60 wallpapers**, dark and light, each with a matching interface palette. You can also upload your own.
 - **Light and dark themes**, compact mode, shorter titles and optional descriptions.
 - **Moods** save a page, theme and wallpaper together so you can switch contexts in one click.
-- **Every tool by name** under *Settings → Tools*: Recently opened, Link health, Smart organize, Moods, Knowledge graph, Vaults and Rooms.
+- **Workspace tools** (the sparkle icon, or *Settings → Tools*): Recently opened, Link health with Smart organize, Moods, Vaults and Rooms. The overview shows each tool's status, such as when links were last checked and how many need attention.
 
 ### Stay safe
 
@@ -169,7 +170,7 @@ tabora/
 ├── shared.js           State layer: storage, locking, migrations, import/export, wallpapers
 ├── background.js       Service worker: Quick Save shortcut, recording opened links
 ├── dashboard.html/js   The new-tab dashboard
-├── features.js         Workspace tools: recent activity, link health, Smart Organize,
+├── features.js         Workspace tools: overview, recent activity, link health, Smart Organize,
 │                       moods, vaults, rooms
 ├── popup.html/js       The toolbar popup
 ├── styles.css          Styles for the dashboard and popup
@@ -211,6 +212,7 @@ node tests/browser-smoke.js
   schemaVersion: 4,
   pages: [],           // { id, name, order, protected }
   boards: [],          // { id, pageId, name, column, columnOrder, color, icon, size, pinned, lastUsedAt, links: [] }
+                       // link: { id, title, url, favIconUrl, note, order, createdAt }
   trash: [],           // { id, type: "board" | "link", value, deletedAt, ... }
   recentlyOpened: [],  // the latest 50 opened links
   moods: [],           // saved page, theme and wallpaper combinations

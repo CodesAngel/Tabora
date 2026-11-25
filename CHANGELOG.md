@@ -6,6 +6,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Links remember when they were saved.** New links record a `createdAt` time. Links saved before this release get theirs from their ID, which has always contained the save time, so nothing is guessed. The popup's "already saved" notice now says when: "On Home · saved 3 days ago."
+- **Tips.** After onboarding, a single line under the header points out one feature at a time: search, the popup, page shortcuts, Settings → Tools and the shortcuts list. A tip goes away once you use its feature or dismiss it, and *Settings → Appearance → Show tips* turns them off.
+
+### Changed
+
+- **Search covers every page.** Results from the current page come first, so <kbd>Enter</kbd> still opens what you see. Results from other pages show "Page / Board", and the summary says how many are elsewhere. Page names now match too.
+- **Clearer delete dialogs.** Moving something to Trash uses a calm dialog that says what goes and how to get it back. Only deleting from Trash, or emptying it, is red, and it names what is being deleted, where it came from and how many items. Restoring a backup, resetting preferences and Smart organize use a neutral dialog. All of them are smaller, with the same button and text sizes as the rest of Tabora, and the Trash list stays visible behind them.
+- **Trash** rows are more compact and say "Deleted 2 hours ago · 30 days left".
+- **Import dialog.** The four sources look the same (the file card no longer has smaller, greyed text), and the chosen one is highlighted. Paste links shows a live count ("2 links found · 1 line skipped") and only continues when there is something to import. The preview says which page the new board goes to, lets you rename the board, and makes fetching titles and icons optional. Back keeps your pasted text.
+- **Workspace tools redesigned.** The sidebar has icons and plain names (Recently opened, Link health, Moods, Vaults, Rooms). The overview has quick actions and a card for each tool with its live status. Every tool explains what it does. Link health lists problems with their board and page, with Open and Use new address actions. Vaults warn that a forgotten password can't be recovered. Rooms has separate Share and Join cards, so the password you were sent no longer shares a field with the one you generate. The dialog now fits on narrow screens.
+
+### Removed
+
+- **Knowledge graph.** Its layout overlapped and it only covered part of the page, so it is gone until it gets a proper design.
+
+### Fixed
+
+- **Plain text is no longer saved as a link.** Chromium accepted spaces in a web address, so a pasted line like "meeting notes" became `https://meeting%20notes/`. Addresses without `http(s)://` now need a dot (or `localhost` or an IP address), and spaces in the host are rejected everywhere links are added or imported.
+- **"Move to Trash" no longer says "This action cannot be undone"** right under "You can restore them within 30 days".
+- **"1 bookmarks"** and similar plural slips in Trash and the import preview.
+
 ## [3.2.0] - 2026-11-06
 
 A reliability, privacy and polish release, based on a full code audit. It also brings in four designs from the UX proposals (real favicons, search up front, a current-tab-first popup and import-first onboarding). It adds the `unlimitedStorage`, `favicon` and `search` permissions.
