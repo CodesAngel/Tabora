@@ -71,12 +71,12 @@ The rail, the confirmation dialogs and Organize mode stay as they are.
 - [ ] 07 Quick capture with highlights and reminders
 - [ ] 08 Backup, restore points and export
 
-### Done after 3.2.0 (uncommitted, in CHANGELOG [Unreleased])
+### Done after 3.2.0 (commit `6082f2f`, in CHANGELOG [Unreleased])
 - `link.createdAt` set on every new link; older links get it from the timestamp inside their id (`timestampFromId`). Popup says "On Home · saved 3 days ago" (`formatRelativeTime`).
 - Search covers every page, current page first; other pages labelled "Page / Board".
 - Hint strip (`HINTS` in dashboard.js): one tip at a time, retired when used or dismissed (`settings.hintsSeen`), hidden in the session where onboarding finishes, toggle `settings.showHints`.
 
-### UI pass on dialogs (uncommitted, in CHANGELOG [Unreleased])
+### UI pass on dialogs (commit `6082f2f`, in CHANGELOG [Unreleased])
 - `requestDeleteConfirmation` takes `tone`: "trash" (default, reversible), "danger" (permanent, solid red), "neutral" (restore, reset, Smart organize). The default caution text is gone.
 - Import: `resetImportDialog`, `showTextImportPanel`, `updateTextImportStatus`; the preview has an editable board name and `#importFetchDetails`.
 - Workspace tools: 6 views (the Knowledge graph was removed), `showFeatureView`, `renderOverviewStatus`, Rooms split into share and join fields (`#roomShareCode`, `#roomSharePassword`, `#roomCode`, `#roomPassword`).
@@ -85,4 +85,5 @@ The rail, the confirmation dialogs and Organize mode stay as they are.
 ### Open questions and follow-ups
 - [ ] Test by hand in **Firefox**: favicon fallback, `search.search` fallback, and the new popup.
 - [ ] Test by hand: commit a bookmark import from the onboarding card (it asks for site access).
+- [ ] Test by hand: Link health against real sites, and fetching titles during import (only tested with fake fetch results).
 - [ ] Release 3.3.0 (bump `manifest.json`, date the CHANGELOG section).
